@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { watches, type Watch } from "@/data/upstream";
 
+const CACHE_KEY = "pstack-map.upstream";
+const TTL_MS = 60 * 60 * 1000;
+
 type Item = {
   id: Watch["id"];
   label: string;
@@ -9,39 +12,71 @@ type Item = {
   compareUrl: string;
 };
 
-type Status =
-  | { state: "loading" }
-  | { state: "error"; message: string }
-  | { state: "ready"; items: Item[] };
+type Ready = { state: "ready"; items: Item[]; checkedAt: number };
+
+type Status = { state: "idle" } | { state: "checking"; previous: Ready | null } | { state: "error"; message: string; previous: Ready | null } | Ready;
+
+type Cache = {
+  at: number;
+  pins: { id: Watch["id"]; sha: string; release: string | null }[];
+  items: Item[];
+};
 
 export function Freshness() {
-  const [status, setStatus] = useState<Status>({ state: "loading" });
+  const [status, setStatus] = useState<Status>({ state: "idle" });
 
   useEffect(() => {
+    const cached = readCache();
+    if (cached && Date.now() - cached.at < TTL_MS) {
+      setStatus({ state: "ready", items: cached.items, checkedAt: cached.at });
+      return;
+    }
     let cancelled = false;
-    void loadOnce().then((next) => {
-      if (!cancelled) setStatus(next);
-    });
+    const previous: Ready | null = cached ? { state: "ready", items: cached.items, checkedAt: cached.at } : null;
+    setStatus({ state: "checking", previous });
+    void loadOnce()
+      .then((next) => {
+        if (cancelled) return;
+        if (next.state === "ready") writeCache(next);
+        setStatus(next.state === "error" ? { ...next, previous } : next);
+      })
+      .catch(() => {
+        if (!cancelled) setStatus({ state: "error", message: "Could not check for updates.", previous });
+      });
     return () => {
       cancelled = true;
     };
   }, []);
 
-  if (status.state === "loading") return <p className="mb-4 text-sm text-muted">Checking the skill repos.</p>;
+  const previous = status.state === "checking" || status.state === "error" ? status.previous : null;
+  const ready = status.state === "ready" ? status : previous;
+  const stale = ready?.items.filter((item) => item.behind) ?? [];
+  const checking = status.state === "checking";
 
-  if (status.state === "error") {
+  if (status.state === "idle" || (checking && !ready)) {
+    return <p className="text-sm text-muted">{checking ? "Checking upstream" : ""}</p>;
+  }
+
+  if (!ready) {
     return (
-      <p className="mb-4 rounded-card border border-line bg-surface px-3 py-2 text-sm text-muted">{status.message}</p>
+      <p className="max-w-sm text-sm text-muted">{status.state === "error" ? status.message : "Could not check for updates."}</p>
     );
   }
 
-  const stale = status.items.filter((item) => item.behind);
   if (stale.length === 0) {
-    return <p className="mb-4 text-sm text-muted">Current with pstack and Matt Pocock skills on main.</p>;
+    return (
+      <p className="text-sm text-muted">
+        <span className="text-fg">Up to date</span>
+        {" · "}
+        checked {formatChecked(ready.checkedAt)}
+        {checking ? " · checking again" : ""}
+        {status.state === "error" ? ` · ${status.message}` : ""}
+      </p>
+    );
   }
 
   return (
-    <div className="mb-4 rounded-card border border-mark bg-surface px-3 py-3">
+    <div className="basis-full rounded-card border border-mark bg-surface px-3 py-3">
       <p className="text-sm font-medium">This map is out of date.</p>
       <ul className="mt-2 space-y-2">
         {stale.map((item) => (
@@ -54,21 +89,57 @@ export function Freshness() {
           </li>
         ))}
       </ul>
+      <p className="mt-2 text-sm text-muted">
+        Checked {formatChecked(ready.checkedAt)}
+        {checking ? " · checking again" : ""}
+      </p>
     </div>
   );
 }
 
-let pending: Promise<Status> | null = null;
+function formatChecked(at: number) {
+  return new Date(at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+function currentPins(): Cache["pins"] {
+  return watches.map((watch) => ({ id: watch.id, sha: watch.pinnedSha, release: watch.pinnedRelease }));
+}
+
+function readCache(): Cache | null {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Cache;
+    if (typeof parsed.at !== "number" || !Array.isArray(parsed.items) || !Array.isArray(parsed.pins)) return null;
+    const pins = currentPins();
+    const same = pins.every((pin) => parsed.pins.some((saved) => saved.id === pin.id && saved.sha === pin.sha && saved.release === pin.release));
+    if (!same || parsed.pins.length !== pins.length) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeCache(status: Ready) {
+  const cache: Cache = { at: status.checkedAt, pins: currentPins(), items: status.items };
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+  } catch {
+    // Private mode or a full disk. The page still shows this result.
+  }
+}
 
 async function loadOnce() {
   if (!pending) pending = loadStatus();
   return pending;
 }
 
-async function loadStatus(): Promise<Status> {
+let pending: Promise<Ready | { state: "error"; message: string }> | null = null;
+
+async function loadStatus(): Promise<Ready | { state: "error"; message: string }> {
   try {
     const items = await Promise.all(watches.map(readWatch));
-    return { state: "ready", items };
+    return { state: "ready", items, checkedAt: Date.now() };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not check for updates.";
     return { state: "error", message };

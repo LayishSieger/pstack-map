@@ -18,20 +18,22 @@ export function Atlas() {
 
   return (
     <main className="mx-auto min-h-screen max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
-      <Freshness />
-      <div className="mb-6 flex gap-2">
-        {views.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => setView(item.id)}
-            className={`min-h-11 rounded-full border px-4 text-sm ${
-              view === item.id ? "border-accent bg-raised text-fg" : "border-line text-muted"
-            }`}
-          >
-            {item.label}
-          </button>
-        ))}
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <div className="flex gap-2">
+          {views.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setView(item.id)}
+              className={`min-h-11 rounded-full border px-4 text-sm ${
+                view === item.id ? "border-accent bg-raised text-fg" : "border-line text-muted"
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+        <Freshness />
       </div>
 
       {view === "pstack" ? (
