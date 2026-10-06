@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { docFor } from "@/data/docs";
 import { loadSkillText } from "@/lib/actions";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type Load = {
   status: "idle" | "loading" | "ready" | "error";
@@ -22,8 +24,10 @@ export function SkillSource({ id }: { id: string }) {
     truncated: false,
     error: null,
   });
+  const request = useRef(0);
 
   useEffect(() => {
+    request.current += 1;
     setOpen(false);
     setLoad({ status: "idle", text: "", href: "", truncated: false, error: null });
   }, [id]);
@@ -31,10 +35,12 @@ export function SkillSource({ id }: { id: string }) {
   if (!doc) return null;
 
   async function read() {
+    const ticket = ++request.current;
     setOpen(true);
     setLoad((current) => ({ ...current, status: "loading", error: null }));
     try {
       const result = await loadSkillText(id);
+      if (ticket !== request.current) return;
       setLoad({
         status: result.ok ? "ready" : "error",
         text: result.text,
@@ -43,6 +49,7 @@ export function SkillSource({ id }: { id: string }) {
         error: result.error,
       });
     } catch {
+      if (ticket !== request.current) return;
       setLoad({
         status: "error",
         text: "",
@@ -54,26 +61,33 @@ export function SkillSource({ id }: { id: string }) {
   }
 
   return (
-    <div className="mt-5">
-      <button
+    <div className="flex flex-col gap-3">
+      <Button
         type="button"
+        variant="outline"
+        className="h-11 w-fit px-3"
         onClick={() => (open && load.status === "ready" ? setOpen(false) : void read())}
-        className="min-h-11 rounded-card border border-line px-3 text-sm"
       >
         {open && load.status === "ready" ? "Hide source" : "Read full skill"}
-      </button>
+      </Button>
       {open ? (
-        <div className="mt-3 max-h-96 overflow-auto rounded-card border border-line bg-bg p-3 sm:max-h-screen">
-          {load.status === "loading" ? <p className="text-sm text-muted">Loading the file from GitHub.</p> : null}
-          {load.status === "error" ? <p className="text-sm text-muted">{load.error}</p> : null}
+        <div className="flex flex-col gap-3 rounded-xl bg-background p-3 ring-1 ring-foreground/10">
+          {load.status === "loading" ? (
+            <div className="flex flex-col gap-2">
+              <p className="text-sm text-muted-foreground">Loading the file from GitHub.</p>
+              <Skeleton className="h-4 w-1/2" />
+              <Skeleton className="h-32 w-full" />
+            </div>
+          ) : null}
+          {load.status === "error" ? <p className="text-sm text-muted-foreground">{load.error}</p> : null}
           {load.status === "ready" ? (
             <>
-              <a href={load.href} target="_blank" rel="noreferrer" className="font-mono text-xs text-accent">
+              <a href={load.href} target="_blank" rel="noreferrer" className="font-mono text-xs text-primary">
                 {doc.path}
               </a>
               <Markdown text={load.text} />
               {load.truncated ? (
-                <p className="mt-3 text-sm text-muted">Truncated. The rest is on GitHub.</p>
+                <p className="text-sm text-muted-foreground">Truncated. The rest is on GitHub.</p>
               ) : null}
             </>
           ) : null}
@@ -86,25 +100,25 @@ export function SkillSource({ id }: { id: string }) {
 function Markdown({ text }: { text: string }) {
   const blocks = parseMarkdown(text);
   return (
-    <div className="mt-3 space-y-3 text-sm leading-relaxed">
+    <div className="flex flex-col gap-3 text-sm leading-relaxed">
       {blocks.map((block, index) => {
         if (block.type === "code") {
           return (
-            <pre key={index} className="overflow-x-auto rounded-card bg-surface p-3 font-mono text-xs">
+            <pre key={index} className="overflow-x-auto rounded-lg bg-muted p-3 font-mono text-xs">
               {block.text}
             </pre>
           );
         }
         if (block.type === "heading") {
           return (
-            <p key={index} className="font-medium text-fg">
+            <p key={index} className="font-medium text-foreground">
               {block.text}
             </p>
           );
         }
         if (block.type === "list") {
           return (
-            <ul key={index} className="list-disc space-y-1 pl-5 text-muted">
+            <ul key={index} className="flex list-disc flex-col gap-1 pl-5 text-muted-foreground">
               {block.items.map((item) => (
                 <li key={item}>{item}</li>
               ))}
@@ -112,7 +126,7 @@ function Markdown({ text }: { text: string }) {
           );
         }
         return (
-          <p key={index} className="text-muted">
+          <p key={index} className="text-muted-foreground">
             {block.text}
           </p>
         );

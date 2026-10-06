@@ -9,34 +9,59 @@ const ERROR_TTL_MS = 10 * 60 * 1000;
 type Cache = UpstreamStatus & { pins: string };
 
 let cache: Cache | null = null;
-let refreshing = false;
+let pending: Promise<void> | null = null;
 
 function pinKey() {
   return watches.map((watch) => `${watch.id}:${watch.pinnedSha}:${watch.pinnedRelease ?? ""}`).join("|");
 }
 
-/** Returns the last check immediately. A cold cache refreshes after the response and does not wait on GitHub. */
-export function getUpstreamStatus(): UpstreamStatus | null {
+function fresh(): UpstreamStatus | null {
   const pins = pinKey();
   const ttl = cache?.error ? ERROR_TTL_MS : TTL_MS;
   if (cache && cache.pins === pins && Date.now() - cache.checkedAt < ttl) {
     return { checkedAt: cache.checkedAt, items: cache.items, error: cache.error };
   }
-  after(() => refresh(pins));
   return null;
 }
 
-async function refresh(pins: string) {
-  if (refreshing) return;
-  refreshing = true;
+/** Returns the last check immediately. A cold cache refreshes after the response and does not wait on GitHub. */
+export function getUpstreamStatus(): UpstreamStatus | null {
+  const hit = fresh();
+  if (hit) return hit;
+  after(() => refresh(pinKey()));
+  return null;
+}
+
+/** Waits for this instance's check. The client poll uses this so a cold cache still resolves. */
+export async function waitForUpstreamStatus(): Promise<UpstreamStatus> {
+  const hit = fresh();
+  if (hit) return hit;
+  await refresh(pinKey());
+  return (
+    fresh() ?? {
+      checkedAt: Date.now(),
+      items: [],
+      error: "Could not check for updates.",
+    }
+  );
+}
+
+function refresh(pins: string): Promise<void> {
+  if (!pending) {
+    pending = runRefresh(pins).finally(() => {
+      pending = null;
+    });
+  }
+  return pending;
+}
+
+async function runRefresh(pins: string) {
   try {
     const items = await Promise.all(watches.map(readWatch));
     cache = { pins, checkedAt: Date.now(), items, error: null };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not check for updates.";
     cache = { pins, checkedAt: Date.now(), items: [], error: message };
-  } finally {
-    refreshing = false;
   }
 }
 
