@@ -1,10 +1,9 @@
 node_modules/
 .next/
+next-env.d.ts
 *.tsbuildinfo
 .node_modules.lock
 dist/
-.output/
-.nitro/
 .vercel/
 .grok/
 screenshots/
