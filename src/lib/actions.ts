@@ -1,10 +1,10 @@
 "use server";
 
 import { getSkillText } from "@/lib/skill-text";
-import { getUpstreamStatus } from "@/lib/upstream-status";
+import { waitForUpstreamStatus } from "@/lib/upstream-status";
 
 export async function loadUpstreamStatus() {
-  return getUpstreamStatus();
+  return waitForUpstreamStatus();
 }
 
 export async function loadSkillText(id: string) {

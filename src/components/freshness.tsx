@@ -12,18 +12,21 @@ export function Freshness({ initial }: { initial: UpstreamStatus | null }) {
   useEffect(() => {
     if (status) return;
     let cancelled = false;
-    const timers = [1200, 4000].map((delay) =>
-      window.setTimeout(() => {
-        void loadUpstreamStatus()
-          .then((next) => {
-            if (!cancelled && next) setStatus(next);
-          })
-          .catch(() => null);
-      }, delay),
-    );
+    void loadUpstreamStatus()
+      .then((next) => {
+        if (!cancelled) setStatus(next);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setStatus({
+            checkedAt: Date.now(),
+            items: [],
+            error: "Could not check for updates.",
+          });
+        }
+      });
     return () => {
       cancelled = true;
-      for (const timer of timers) window.clearTimeout(timer);
     };
   }, [status]);
 

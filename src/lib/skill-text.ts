@@ -4,7 +4,7 @@ import { blobUrl, docFor } from "@/data/docs";
 const TTL_MS = 15 * 60 * 1000;
 const MAX_CHARS = 80_000;
 
-type CacheEntry = { at: number; text: string };
+type CacheEntry = { at: number; text: string; truncated: boolean };
 const cache = new Map<string, CacheEntry>();
 
 export type SkillText = {
@@ -17,18 +17,20 @@ export type SkillText = {
 
 const empty: SkillText = { ok: false, text: "", href: "", truncated: false, error: "No source file for this item." };
 
-async function githubText(url: string): Promise<string> {
+async function githubText(url: string): Promise<{ text: string; truncated: boolean }> {
   const hit = cache.get(url);
-  if (hit && Date.now() - hit.at < TTL_MS) return hit.text;
+  if (hit && Date.now() - hit.at < TTL_MS) return { text: hit.text, truncated: hit.truncated };
   const response = await fetch(url, {
     cache: "no-store",
     headers: { "User-Agent": "pstack-map" },
     signal: AbortSignal.timeout(8000),
   });
   if (!response.ok) throw new Error(`GitHub returned ${response.status}`);
-  const text = await response.text();
-  cache.set(url, { at: Date.now(), text });
-  return text;
+  const raw = await response.text();
+  const truncated = raw.length > MAX_CHARS;
+  const text = truncated ? raw.slice(0, MAX_CHARS) : raw;
+  cache.set(url, { at: Date.now(), text, truncated });
+  return { text, truncated };
 }
 
 export async function getSkillText(id: string): Promise<SkillText> {
@@ -36,9 +38,8 @@ export async function getSkillText(id: string): Promise<SkillText> {
   if (!doc) return empty;
   const href = blobUrl(doc);
   try {
-    const raw = await githubText(`https://raw.githubusercontent.com/${doc.repo}/main/${doc.path}`);
-    const truncated = raw.length > MAX_CHARS;
-    return { ok: true, text: truncated ? raw.slice(0, MAX_CHARS) : raw, href, truncated, error: null };
+    const loaded = await githubText(`https://raw.githubusercontent.com/${doc.repo}/main/${doc.path}`);
+    return { ok: true, text: loaded.text, href, truncated: loaded.truncated, error: null };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not load the file.";
     return { ok: false, text: "", href, truncated: false, error: message };

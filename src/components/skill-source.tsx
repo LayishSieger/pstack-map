@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { docFor } from "@/data/docs";
 import { loadSkillText } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
@@ -24,8 +24,10 @@ export function SkillSource({ id }: { id: string }) {
     truncated: false,
     error: null,
   });
+  const request = useRef(0);
 
   useEffect(() => {
+    request.current += 1;
     setOpen(false);
     setLoad({ status: "idle", text: "", href: "", truncated: false, error: null });
   }, [id]);
@@ -33,10 +35,12 @@ export function SkillSource({ id }: { id: string }) {
   if (!doc) return null;
 
   async function read() {
+    const ticket = ++request.current;
     setOpen(true);
     setLoad((current) => ({ ...current, status: "loading", error: null }));
     try {
       const result = await loadSkillText(id);
+      if (ticket !== request.current) return;
       setLoad({
         status: result.ok ? "ready" : "error",
         text: result.text,
@@ -45,6 +49,7 @@ export function SkillSource({ id }: { id: string }) {
         error: result.error,
       });
     } catch {
+      if (ticket !== request.current) return;
       setLoad({
         status: "error",
         text: "",
