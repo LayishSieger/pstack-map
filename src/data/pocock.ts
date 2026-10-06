@@ -81,7 +81,7 @@ export const pocockNodes: NodeItem[] = [
     kind: "skill",
     group: "Plan",
     blurb:
-      "Splits a spec into tracer-bullet tickets. Each ticket names what it blocks. On a real tracker those become native blocking links.",
+      "Splits a spec into tracer-bullet tickets. Local files name their blockers. On a real tracker those are native links, and when the source is an issue each ticket is a sub-issue of it.",
   },
   {
     id: "mp-implement",
@@ -316,7 +316,7 @@ export const pocockEdges: Edge[] = [
   {
     from: "mp-to-spec",
     to: "mp-to-tickets",
-    why: "The spec is sliced into tracer bullets with blocking edges.",
+    why: "The spec is sliced into tracer bullets. On a tracker each ticket is a sub-issue of that spec, with native blocking edges.",
   },
   {
     from: "mp-to-tickets",
