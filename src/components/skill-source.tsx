@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { sourceOf } from "@/catalog";
 import { loadSkillText } from "@/lib/actions";
-import { Button } from "@/components/ui/button";
+import { parseSkillMarkdown, type Block, type Inline } from "@/lib/skill-markdown";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type Load = {
-  status: "idle" | "loading" | "ready" | "error";
+  id: string;
+  status: "loading" | "ready" | "error";
   text: string;
   href: string;
   truncated: boolean;
@@ -16,178 +17,235 @@ type Load = {
 
 export function SkillSource({ id }: { id: string }) {
   const source = sourceOf(id);
-  const [open, setOpen] = useState(false);
+  const request = useRef(0);
   const [load, setLoad] = useState<Load>({
-    status: "idle",
+    id,
+    status: "loading",
     text: "",
     href: "",
     truncated: false,
     error: null,
   });
-  const request = useRef(0);
+
+  if (load.id !== id) {
+    setLoad({ id, status: "loading", text: "", href: "", truncated: false, error: null });
+  }
 
   useEffect(() => {
-    request.current += 1;
-    setOpen(false);
-    setLoad({ status: "idle", text: "", href: "", truncated: false, error: null });
+    if (!sourceOf(id)) return;
+    const ticket = ++request.current;
+    void loadSkillText(id)
+      .then((result) => {
+        if (ticket !== request.current) return;
+        setLoad({
+          id,
+          status: result.ok ? "ready" : "error",
+          text: result.text,
+          href: result.href,
+          truncated: result.truncated,
+          error: result.error,
+        });
+      })
+      .catch(() => {
+        if (ticket !== request.current) return;
+        setLoad({
+          id,
+          status: "error",
+          text: "",
+          href: "",
+          truncated: false,
+          error: "Could not load the file.",
+        });
+      });
+    return () => {
+      request.current += 1;
+    };
   }, [id]);
+
+  const parsed = useMemo(
+    () => (load.status === "ready" ? parseSkillMarkdown(load.text) : null),
+    [load.status, load.text],
+  );
 
   if (!source) return null;
 
-  async function read() {
-    const ticket = ++request.current;
-    setOpen(true);
-    setLoad((current) => ({ ...current, status: "loading", error: null }));
-    try {
-      const result = await loadSkillText(id);
-      if (ticket !== request.current) return;
-      setLoad({
-        status: result.ok ? "ready" : "error",
-        text: result.text,
-        href: result.href,
-        truncated: result.truncated,
-        error: result.error,
-      });
-    } catch {
-      if (ticket !== request.current) return;
-      setLoad({
-        status: "error",
-        text: "",
-        href: "",
-        truncated: false,
-        error: "Could not load the file.",
-      });
-    }
-  }
+  const href = load.href || source.href;
 
   return (
     <div className="flex flex-col gap-3">
-      <Button
-        type="button"
-        variant="outline"
-        className="h-11 w-fit px-3"
-        onClick={() => (open && load.status === "ready" ? setOpen(false) : void read())}
-      >
-        {open && load.status === "ready" ? "Hide source" : "Read full skill"}
-      </Button>
-      {open ? (
-        <div className="flex flex-col gap-3 rounded-xl bg-background p-3 ring-1 ring-foreground/10">
-          {load.status === "loading" ? (
-            <div className="flex flex-col gap-2">
-              <p className="text-sm text-muted-foreground">Loading the file from GitHub.</p>
-              <Skeleton className="h-4 w-1/2" />
-              <Skeleton className="h-32 w-full" />
-            </div>
-          ) : null}
-          {load.status === "error" ? <p className="text-sm text-muted-foreground">{load.error}</p> : null}
-          {load.status === "ready" ? (
-            <>
-              <a href={load.href} target="_blank" rel="noreferrer" className="font-mono text-xs text-primary">
-                {source.path}
-              </a>
-              <Markdown text={load.text} />
-              {load.truncated ? (
-                <p className="text-sm text-muted-foreground">Truncated. The rest is on GitHub.</p>
-              ) : null}
-            </>
-          ) : null}
-        </div>
-      ) : null}
+      <a href={href} target="_blank" rel="noreferrer" className="w-fit text-sm text-primary">
+        Open <span className="font-mono text-xs break-all">{source.path}</span>
+      </a>
+      <div className="flex flex-col gap-3 rounded-xl bg-background p-3 ring-1 ring-foreground/10">
+        {load.status === "loading" ? (
+          <div className="flex flex-col gap-2">
+            <p className="text-sm text-muted-foreground">Loading the file from GitHub.</p>
+            <Skeleton className="h-4 w-1/2" />
+            <Skeleton className="h-32 w-full" />
+          </div>
+        ) : null}
+        {load.status === "error" ? <p className="text-sm text-muted-foreground">{load.error}</p> : null}
+        {parsed ? (
+          <>
+            {parsed.fields.length > 0 ? <FieldTable fields={parsed.fields} /> : null}
+            <Markdown blocks={parsed.blocks} />
+            {load.truncated ? (
+              <p className="text-sm text-muted-foreground">Truncated. The rest is on GitHub.</p>
+            ) : null}
+          </>
+        ) : null}
+      </div>
     </div>
   );
 }
 
-function Markdown({ text }: { text: string }) {
-  const blocks = parseMarkdown(text);
+function FieldTable({ fields }: { fields: { key: string; value: string }[] }) {
+  return (
+    <table className="w-full border-collapse text-sm">
+      <caption className="sr-only">Skill fields</caption>
+      <tbody>
+        {fields.map((field) => (
+          <tr key={field.key} className="border-b border-border last:border-0">
+            <th scope="row" className="w-2/5 py-1.5 pe-3 text-left align-top font-mono text-xs font-medium text-muted-foreground">
+              {field.key}
+            </th>
+            <td className="py-1.5 align-top break-words text-foreground">{field.value}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function Markdown({ blocks }: { blocks: Block[] }) {
   return (
     <div className="flex flex-col gap-3 text-sm leading-relaxed">
-      {blocks.map((block, index) => {
-        if (block.type === "code") {
-          return (
-            <pre key={index} className="overflow-x-auto rounded-lg bg-muted p-3 font-mono text-xs">
-              {block.text}
-            </pre>
-          );
-        }
-        if (block.type === "heading") {
-          return (
-            <p key={index} className="font-medium text-foreground">
-              {block.text}
-            </p>
-          );
-        }
-        if (block.type === "list") {
-          return (
-            <ul key={index} className="flex list-disc flex-col gap-1 pl-5 text-muted-foreground">
-              {block.items.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-          );
-        }
-        return (
-          <p key={index} className="text-muted-foreground">
-            {block.text}
-          </p>
-        );
-      })}
+      {blocks.map((block, index) => (
+        <BlockView key={index} block={block} />
+      ))}
     </div>
   );
 }
 
-type Block =
-  | { type: "heading"; text: string }
-  | { type: "paragraph"; text: string }
-  | { type: "list"; items: string[] }
-  | { type: "code"; text: string };
-
-function parseMarkdown(source: string): Block[] {
-  const lines = source.replaceAll("\r\n", "\n").split("\n");
-  const blocks: Block[] = [];
-  let index = 0;
-  while (index < lines.length) {
-    const line = lines[index] ?? "";
-    if (line.startsWith("```")) {
-      const body: string[] = [];
-      index += 1;
-      while (index < lines.length && !(lines[index] ?? "").startsWith("```")) {
-        body.push(lines[index] ?? "");
-        index += 1;
-      }
-      index += 1;
-      blocks.push({ type: "code", text: body.join("\n") });
-      continue;
-    }
-    if (line.trim() === "") {
-      index += 1;
-      continue;
-    }
-    if (/^#{1,6}\s+/.test(line)) {
-      blocks.push({ type: "heading", text: line.replace(/^#{1,6}\s+/, "") });
-      index += 1;
-      continue;
-    }
-    if (/^\s*[-*]\s+/.test(line)) {
-      const items: string[] = [];
-      while (index < lines.length && /^\s*[-*]\s+/.test(lines[index] ?? "")) {
-        items.push((lines[index] ?? "").replace(/^\s*[-*]\s+/, ""));
-        index += 1;
-      }
-      blocks.push({ type: "list", items });
-      continue;
-    }
-    const paragraph: string[] = [];
-    while (
-      index < lines.length &&
-      (lines[index] ?? "").trim() !== "" &&
-      !((lines[index] ?? "").startsWith("```")) &&
-      !/^#{1,6}\s+/.test(lines[index] ?? "") &&
-      !/^\s*[-*]\s+/.test(lines[index] ?? "")
-    ) {
-      paragraph.push(lines[index] ?? "");
-      index += 1;
-    }
-    blocks.push({ type: "paragraph", text: paragraph.join(" ") });
+function BlockView({ block }: { block: Block }) {
+  if (block.type === "code") {
+    return (
+      <pre className="overflow-x-auto rounded-lg bg-muted p-3 font-mono text-xs">
+        <code>{block.text}</code>
+      </pre>
+    );
   }
-  return blocks;
+  if (block.type === "heading") {
+    const Tag = headingTag(block.level);
+    return (
+      <Tag className="font-medium text-foreground">
+        <Inlines items={block.children} />
+      </Tag>
+    );
+  }
+  if (block.type === "list") {
+    const Tag = block.ordered ? "ol" : "ul";
+    return (
+      <Tag
+        className={
+          block.ordered
+            ? "flex list-decimal flex-col gap-1 pl-5 text-muted-foreground"
+            : "flex list-disc flex-col gap-1 pl-5 text-muted-foreground"
+        }
+      >
+        {block.items.map((item, index) => (
+          <li key={index}>
+            <Inlines items={item.children} />
+            {item.nested.length > 0 ? <Markdown blocks={item.nested} /> : null}
+          </li>
+        ))}
+      </Tag>
+    );
+  }
+  if (block.type === "table") {
+    return (
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse text-left text-sm">
+          <thead>
+            <tr>
+              {block.header.map((cell, index) => (
+                <th key={index} className="border-b border-border px-2 py-1.5 font-medium text-foreground">
+                  <Inlines items={cell} />
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {block.rows.map((row, rowIndex) => (
+              <tr key={rowIndex}>
+                {row.map((cell, cellIndex) => (
+                  <td key={cellIndex} className="border-b border-border px-2 py-1.5 align-top text-muted-foreground">
+                    <Inlines items={cell} />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+  if (block.type === "quote") {
+    return (
+      <blockquote className="border-l-2 border-border pl-3 text-muted-foreground">
+        <Inlines items={block.children} />
+      </blockquote>
+    );
+  }
+  if (block.type === "rule") return <hr className="border-border" />;
+  return (
+    <p className="text-muted-foreground">
+      <Inlines items={block.children} />
+    </p>
+  );
+}
+
+function headingTag(level: number): "h3" | "h4" | "h5" | "h6" {
+  if (level <= 1) return "h3";
+  if (level === 2) return "h4";
+  if (level === 3) return "h5";
+  return "h6";
+}
+
+function Inlines({ items }: { items: Inline[] }) {
+  return items.map((item, index) => {
+    if (item.type === "text") return <span key={index}>{item.text}</span>;
+    if (item.type === "code") {
+      return (
+        <code key={index} className="rounded bg-muted px-1 py-0.5 font-mono text-xs text-foreground">
+          {item.text}
+        </code>
+      );
+    }
+    if (item.type === "strong") {
+      return (
+        <strong key={index} className="font-medium text-foreground">
+          <Inlines items={item.children} />
+        </strong>
+      );
+    }
+    if (item.type === "em") {
+      return (
+        <em key={index}>
+          <Inlines items={item.children} />
+        </em>
+      );
+    }
+    const external = /^https?:\/\//i.test(item.href);
+    return (
+      <a
+        key={index}
+        href={item.href}
+        className="text-primary underline-offset-4 hover:underline"
+        {...(external ? { target: "_blank", rel: "noreferrer" } : {})}
+      >
+        <Inlines items={item.children} />
+      </a>
+    );
+  });
 }

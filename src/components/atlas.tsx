@@ -31,22 +31,22 @@ export function Atlas({ initialStatus }: { initialStatus: UpstreamStatus | null 
       className="flex min-h-dvh flex-col bg-background lg:h-dvh lg:overflow-hidden"
     >
       <header className="sticky top-0 z-20 shrink-0 border-b bg-background/80 backdrop-blur-md lg:static">
-        <div className="flex min-h-12 flex-wrap items-center justify-between gap-x-4 px-4">
+        <Freshness initial={initialStatus} />
+        <div className="flex min-h-12 items-center px-4">
           <TabsList
             variant="line"
-            className="h-12 w-full justify-start gap-0 bg-transparent p-0 group-data-horizontal/tabs:h-12 sm:w-auto"
+            className="h-12 w-full justify-start gap-0 bg-transparent p-0 group-data-horizontal/tabs:h-12 lg:w-auto"
           >
             {views.map((item) => (
               <TabsTrigger
                 key={item.id}
                 value={item.id}
-                className="h-12 flex-1 rounded-none px-3 after:bottom-0 data-active:text-foreground sm:flex-none"
+                className="h-12 flex-1 rounded-none px-3 after:bottom-0 data-active:text-foreground lg:flex-none"
               >
                 {item.label}
               </TabsTrigger>
             ))}
           </TabsList>
-          <Freshness initial={initialStatus} />
         </div>
       </header>
 
