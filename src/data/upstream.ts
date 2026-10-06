@@ -22,7 +22,7 @@ export const watches: Watch[] = [
     label: "Matt Pocock skills",
     repo: "mattpocock/skills",
     path: "",
-    pinnedSha: "2b47ffcf2385995a536e43ddc9226e32cf9793d9",
+    pinnedSha: "6fd947921b935b7e1e69293a200400f0fdd5c15f",
     pinnedRelease: "v1.3.1",
   },
 ];
