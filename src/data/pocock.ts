@@ -1,18 +1,19 @@
-import type { Edge, NodeItem } from "@/data/pstack";
+import type { Edge, FlowStep, SkillDraft } from "@/catalog/types";
 
-export const pocockFlow = [
-  { id: "mp-setup", label: "Setup" },
-  { id: "mp-ask-matt", label: "Router" },
-  { id: "mp-grill-with-docs", label: "Grill" },
-  { id: "mp-to-spec", label: "Spec" },
-  { id: "mp-to-tickets", label: "Tickets" },
-  { id: "mp-implement-spec", label: "Build" },
-  { id: "mp-code-review", label: "Review" },
-] as const;
+export const pocockFlow: readonly FlowStep[] = [
+  { skillId: "mp-setup", label: "Setup" },
+  { skillId: "mp-ask-matt", label: "Router" },
+  { skillId: "mp-grill-with-docs", label: "Grill" },
+  { skillId: "mp-to-spec", label: "Spec" },
+  { skillId: "mp-to-tickets", label: "Tickets" },
+  { skillId: "mp-implement-spec", label: "Build" },
+  { skillId: "mp-code-review", label: "Review" },
+];
 
-export const pocockNodes: NodeItem[] = [
+export const pocockNodes: SkillDraft[] = [
   {
     id: "mp-ask-matt",
+    path: "skills/engineering/ask-matt/SKILL.md",
     title: "/ask-matt",
     kind: "skill",
     group: "Router",
@@ -21,6 +22,7 @@ export const pocockNodes: NodeItem[] = [
   },
   {
     id: "mp-setup",
+    path: "skills/engineering/setup-matt-pocock-skills/SKILL.md",
     title: "/setup-matt-pocock-skills",
     kind: "skill",
     group: "Router",
@@ -29,6 +31,7 @@ export const pocockNodes: NodeItem[] = [
   },
   {
     id: "mp-grill-with-docs",
+    path: "skills/engineering/grill-with-docs/SKILL.md",
     title: "/grill-with-docs",
     kind: "skill",
     group: "Shape",
@@ -37,6 +40,7 @@ export const pocockNodes: NodeItem[] = [
   },
   {
     id: "mp-grill-me",
+    path: "skills/productivity/grill-me/SKILL.md",
     title: "/grill-me",
     kind: "skill",
     group: "Shape",
@@ -45,6 +49,7 @@ export const pocockNodes: NodeItem[] = [
   },
   {
     id: "mp-grilling",
+    path: "skills/productivity/grilling/SKILL.md",
     title: "grilling",
     kind: "skill",
     group: "Shape",
@@ -53,6 +58,7 @@ export const pocockNodes: NodeItem[] = [
   },
   {
     id: "mp-domain-modeling",
+    path: "skills/engineering/domain-modeling/SKILL.md",
     title: "domain-modeling",
     kind: "skill",
     group: "Shape",
@@ -61,6 +67,7 @@ export const pocockNodes: NodeItem[] = [
   },
   {
     id: "mp-wayfinder",
+    path: "skills/engineering/wayfinder/SKILL.md",
     title: "/wayfinder",
     kind: "skill",
     group: "Shape",
@@ -69,6 +76,7 @@ export const pocockNodes: NodeItem[] = [
   },
   {
     id: "mp-to-spec",
+    path: "skills/engineering/to-spec/SKILL.md",
     title: "/to-spec",
     kind: "skill",
     group: "Plan",
@@ -77,6 +85,7 @@ export const pocockNodes: NodeItem[] = [
   },
   {
     id: "mp-to-tickets",
+    path: "skills/engineering/to-tickets/SKILL.md",
     title: "/to-tickets",
     kind: "skill",
     group: "Plan",
@@ -85,6 +94,7 @@ export const pocockNodes: NodeItem[] = [
   },
   {
     id: "mp-implement",
+    path: "skills/engineering/implement/SKILL.md",
     title: "/implement",
     kind: "skill",
     group: "Build",
@@ -93,6 +103,7 @@ export const pocockNodes: NodeItem[] = [
   },
   {
     id: "mp-implement-spec",
+    path: "skills/engineering/implement-spec/SKILL.md",
     title: "/implement-spec",
     kind: "skill",
     group: "Build",
@@ -101,6 +112,7 @@ export const pocockNodes: NodeItem[] = [
   },
   {
     id: "mp-tdd",
+    path: "skills/engineering/tdd/SKILL.md",
     title: "tdd",
     kind: "skill",
     group: "Build",
@@ -109,6 +121,7 @@ export const pocockNodes: NodeItem[] = [
   },
   {
     id: "mp-prototype",
+    path: "skills/engineering/prototype/SKILL.md",
     title: "prototype",
     kind: "skill",
     group: "Build",
@@ -117,6 +130,7 @@ export const pocockNodes: NodeItem[] = [
   },
   {
     id: "mp-codebase-design",
+    path: "skills/engineering/codebase-design/SKILL.md",
     title: "codebase-design",
     kind: "skill",
     group: "Design",
@@ -125,6 +139,7 @@ export const pocockNodes: NodeItem[] = [
   },
   {
     id: "mp-improve-architecture",
+    path: "skills/engineering/improve-codebase-architecture/SKILL.md",
     title: "/improve-codebase-architecture",
     kind: "skill",
     group: "Design",
@@ -133,6 +148,7 @@ export const pocockNodes: NodeItem[] = [
   },
   {
     id: "mp-diagnosing-bugs",
+    path: "skills/engineering/diagnosing-bugs/SKILL.md",
     title: "diagnosing-bugs",
     kind: "skill",
     group: "Fix",
@@ -141,6 +157,7 @@ export const pocockNodes: NodeItem[] = [
   },
   {
     id: "mp-research",
+    path: "skills/engineering/research/SKILL.md",
     title: "research",
     kind: "skill",
     group: "Understand",
@@ -149,6 +166,7 @@ export const pocockNodes: NodeItem[] = [
   },
   {
     id: "mp-code-review",
+    path: "skills/engineering/code-review/SKILL.md",
     title: "code-review",
     kind: "skill",
     group: "Review",
@@ -157,6 +175,7 @@ export const pocockNodes: NodeItem[] = [
   },
   {
     id: "mp-pr",
+    path: "skills/engineering/pr/SKILL.md",
     title: "pr",
     kind: "skill",
     group: "Review",
@@ -165,6 +184,7 @@ export const pocockNodes: NodeItem[] = [
   },
   {
     id: "mp-triage",
+    path: "skills/engineering/triage/SKILL.md",
     title: "/triage",
     kind: "skill",
     group: "Tracker",
@@ -173,6 +193,7 @@ export const pocockNodes: NodeItem[] = [
   },
   {
     id: "mp-wizard",
+    path: "skills/engineering/wizard/SKILL.md",
     title: "wizard",
     kind: "skill",
     group: "Tracker",
@@ -181,6 +202,7 @@ export const pocockNodes: NodeItem[] = [
   },
   {
     id: "mp-retro",
+    path: "skills/engineering/retro/SKILL.md",
     title: "/retro",
     kind: "skill",
     group: "After",
@@ -189,6 +211,7 @@ export const pocockNodes: NodeItem[] = [
   },
   {
     id: "mp-handoff",
+    path: "skills/productivity/handoff/SKILL.md",
     title: "/handoff",
     kind: "skill",
     group: "After",
@@ -196,6 +219,7 @@ export const pocockNodes: NodeItem[] = [
   },
   {
     id: "mp-teach",
+    path: "skills/productivity/teach/SKILL.md",
     title: "/teach",
     kind: "skill",
     group: "People",
@@ -204,6 +228,7 @@ export const pocockNodes: NodeItem[] = [
   },
   {
     id: "mp-to-questionnaire",
+    path: "skills/productivity/to-questionnaire/SKILL.md",
     title: "/to-questionnaire",
     kind: "skill",
     group: "People",
@@ -212,6 +237,7 @@ export const pocockNodes: NodeItem[] = [
   },
   {
     id: "mp-wait-what",
+    path: "skills/productivity/wait-what/SKILL.md",
     title: "/wait-what",
     kind: "skill",
     group: "People",
@@ -220,6 +246,7 @@ export const pocockNodes: NodeItem[] = [
   },
   {
     id: "mp-writing-for-agents",
+    path: "skills/productivity/writing-for-agents/SKILL.md",
     title: "writing-for-agents",
     kind: "skill",
     group: "People",
@@ -371,7 +398,6 @@ export const pocockEdges: Edge[] = [
 ];
 
 export const pocockGroups = [
-  "All",
   "Router",
   "Shape",
   "Plan",

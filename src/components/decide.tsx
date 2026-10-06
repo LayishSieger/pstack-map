@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { choices, jobs, type ChoiceId } from "@/data/decide";
+import { compare } from "@/catalog";
+import type { ChoiceId } from "@/data/decide";
 import { cn } from "cn";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function Decide() {
+  const { choices, jobs } = compare();
   const [choiceId, setChoiceId] = useState<ChoiceId>("hybrid");
   const choice = choices.find((item) => item.id === choiceId) ?? choices[2];
 
@@ -81,11 +83,11 @@ export function Decide() {
                 <CardContent className="flex flex-col gap-2 text-sm leading-relaxed">
                   <p>
                     <span className="text-muted-foreground">Pstack. </span>
-                    {row.pstack}
+                    {row.pstack.map((skill) => skill.title).join(", ")}
                   </p>
                   <p>
                     <span className="text-muted-foreground">Pocock. </span>
-                    {row.pocock}
+                    {row.pocock.map((skill) => skill.title).join(", ")}
                   </p>
                   <p>
                     <span className="text-muted-foreground">Keep. </span>
@@ -110,8 +112,8 @@ export function Decide() {
               {jobs.map((row) => (
                 <tr key={row.job} className="border-t border-border align-top">
                   <td className="px-3 py-2 font-medium">{row.job}</td>
-                  <td className="px-3 py-2 text-muted-foreground">{row.pstack}</td>
-                  <td className="px-3 py-2 text-muted-foreground">{row.pocock}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{row.pstack.map((skill) => skill.title).join(", ")}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{row.pocock.map((skill) => skill.title).join(", ")}</td>
                   <td className="px-3 py-2">{row.keep}</td>
                 </tr>
               ))}

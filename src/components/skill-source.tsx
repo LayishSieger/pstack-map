@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { docFor } from "@/data/docs";
+import { sourceOf } from "@/catalog";
 import { loadSkillText } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,7 +15,7 @@ type Load = {
 };
 
 export function SkillSource({ id }: { id: string }) {
-  const doc = docFor(id);
+  const source = sourceOf(id);
   const [open, setOpen] = useState(false);
   const [load, setLoad] = useState<Load>({
     status: "idle",
@@ -32,7 +32,7 @@ export function SkillSource({ id }: { id: string }) {
     setLoad({ status: "idle", text: "", href: "", truncated: false, error: null });
   }, [id]);
 
-  if (!doc) return null;
+  if (!source) return null;
 
   async function read() {
     const ticket = ++request.current;
@@ -83,7 +83,7 @@ export function SkillSource({ id }: { id: string }) {
           {load.status === "ready" ? (
             <>
               <a href={load.href} target="_blank" rel="noreferrer" className="font-mono text-xs text-primary">
-                {doc.path}
+                {source.path}
               </a>
               <Markdown text={load.text} />
               {load.truncated ? (

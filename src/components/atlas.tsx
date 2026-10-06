@@ -5,8 +5,6 @@ import { Freshness } from "@/components/freshness";
 import { Decide } from "@/components/decide";
 import { SkillMap } from "@/components/pstack-map";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { edges, flow, groups, nodes } from "@/data/pstack";
-import { pocockEdges, pocockFlow, pocockGroups, pocockNodes } from "@/data/pocock";
 import type { UpstreamStatus } from "@/lib/upstream-types";
 
 const views = [
@@ -55,28 +53,19 @@ export function Atlas({ initialStatus }: { initialStatus: UpstreamStatus | null 
       <div className="flex min-h-0 w-full flex-1 flex-col">
         <TabsContent value="pstack" className="flex min-h-0 flex-1 flex-col text-base">
           <SkillMap
+            pack="pstack"
             kicker="pstack"
             title="Skill map"
             lede="Name a goal and a check. The router picks one playbook, copies its steps into a todo list, and calls the other skills only when a step needs them."
-            nodes={nodes}
-            edges={edges}
-            flow={flow}
-            groups={groups}
-            defaultId="poteto-mode"
-            hubs={{ playbooks: "investigation" }}
           />
         </TabsContent>
 
         <TabsContent value="pocock" className="flex min-h-0 flex-1 flex-col text-base">
           <SkillMap
+            pack="pocock"
             kicker="matt pocock"
             title="Skill map"
             lede="Small skills you invoke. A user-invoked skill may call a model-invoked one, not another user-invoked skill. The main path is grill, spec, tickets, then either one ticket at a time or the whole graph."
-            nodes={pocockNodes}
-            edges={pocockEdges}
-            flow={pocockFlow}
-            groups={pocockGroups}
-            defaultId="mp-ask-matt"
           />
         </TabsContent>
 
