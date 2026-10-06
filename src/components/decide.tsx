@@ -2,71 +2,103 @@
 
 import { useState } from "react";
 import { choices, jobs, type ChoiceId } from "@/data/decide";
+import { cn } from "cn";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function Decide() {
   const [choiceId, setChoiceId] = useState<ChoiceId>("hybrid");
   const choice = choices.find((item) => item.id === choiceId) ?? choices[2];
 
   return (
-    <div>
-      <header className="mb-6 max-w-3xl">
+    <div className="flex flex-col gap-6 p-4 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain">
+      <header className="flex max-w-3xl flex-col gap-2">
         <p className="font-mono text-sm text-mark">compare</p>
-        <h1 className="mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">Which flow</h1>
-        <p className="mt-3 text-base leading-relaxed text-muted">
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Which flow</h1>
+        <p className="text-base leading-relaxed text-muted-foreground">
           Pstack is one sticky router that picks a playbook. Pocock is a set of small commands you invoke, and a
           user-invoked skill does not call another user-invoked skill. Pick one owner per phase. Two builders on the
           same ticket fight.
         </p>
       </header>
 
-      <div className="mb-4 grid gap-2 sm:grid-cols-3">
+      <div className="grid gap-2 md:grid-cols-3">
         {choices.map((item) => {
           const active = item.id === choice.id;
           return (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setChoiceId(item.id)}
-              className={`min-h-11 rounded-card border p-3 text-left ${
-                active ? "border-mark bg-raised" : "border-line bg-surface"
-              }`}
-            >
-              <span className="block font-medium">{item.title}</span>
-              <span className="mt-1 block text-sm leading-relaxed text-muted">{item.when}</span>
+            <button key={item.id} type="button" onClick={() => setChoiceId(item.id)} className="text-left">
+              <Card className={cn("h-full", active && "ring-2 ring-mark")}>
+                <CardHeader>
+                  <CardTitle>{item.title}</CardTitle>
+                  <CardDescription className="leading-relaxed">{item.when}</CardDescription>
+                </CardHeader>
+              </Card>
             </button>
           );
         })}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className="rounded-card border border-line bg-surface p-4">
-          <h2 className="text-sm font-medium">Run this</h2>
-          <ol className="mt-3 space-y-3">
-            {choice.steps.map((step, index) => (
-              <li key={step} className="flex gap-3 text-sm leading-relaxed">
-                <span className="font-mono text-mark">0{index + 1}</span>
-                <span>{step}</span>
-              </li>
-            ))}
-          </ol>
-        </section>
-        <section className="rounded-card border border-line bg-surface p-4">
-          <h2 className="text-sm font-medium">Leave these out</h2>
-          <ul className="mt-3 space-y-3">
-            {choice.drop.map((item) => (
-              <li key={item} className="text-sm leading-relaxed text-muted">
-                {item}
-              </li>
-            ))}
-          </ul>
-        </section>
+        <Card>
+          <CardHeader>
+            <CardTitle>Run this</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ol className="flex flex-col gap-3">
+              {choice.steps.map((step, index) => (
+                <li key={step} className="flex gap-3 text-sm leading-relaxed">
+                  <span className="font-mono text-mark">0{index + 1}</span>
+                  <span>{step}</span>
+                </li>
+              ))}
+            </ol>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Leave these out</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="flex flex-col gap-3">
+              {choice.drop.map((item) => (
+                <li key={item} className="text-sm leading-relaxed text-muted-foreground">
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
       </div>
 
-      <section className="mt-6">
+      <section className="flex flex-col gap-3 pb-4">
         <h2 className="text-sm font-medium">Same job, both packs</h2>
-        <div className="mt-3 overflow-x-auto rounded-card border border-line">
-          <table className="w-full min-w-[40rem] text-left text-sm">
-            <thead className="bg-surface text-muted">
+        <ul className="grid gap-3 md:hidden">
+          {jobs.map((row) => (
+            <li key={row.job}>
+              <Card size="sm">
+                <CardHeader>
+                  <CardTitle>{row.job}</CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-2 text-sm leading-relaxed">
+                  <p>
+                    <span className="text-muted-foreground">Pstack. </span>
+                    {row.pstack}
+                  </p>
+                  <p>
+                    <span className="text-muted-foreground">Pocock. </span>
+                    {row.pocock}
+                  </p>
+                  <p>
+                    <span className="text-muted-foreground">Keep. </span>
+                    {row.keep}
+                  </p>
+                </CardContent>
+              </Card>
+            </li>
+          ))}
+        </ul>
+        <div className="hidden overflow-x-auto rounded-xl bg-card ring-1 ring-foreground/10 md:block">
+          <table className="w-full text-left text-sm">
+            <thead className="text-muted-foreground">
               <tr>
                 <th className="px-3 py-2 font-medium">Job</th>
                 <th className="px-3 py-2 font-medium">Pstack</th>
@@ -76,10 +108,10 @@ export function Decide() {
             </thead>
             <tbody>
               {jobs.map((row) => (
-                <tr key={row.job} className="border-t border-line">
+                <tr key={row.job} className="border-t border-border align-top">
                   <td className="px-3 py-2 font-medium">{row.job}</td>
-                  <td className="px-3 py-2 text-muted">{row.pstack}</td>
-                  <td className="px-3 py-2 text-muted">{row.pocock}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{row.pstack}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{row.pocock}</td>
                   <td className="px-3 py-2">{row.keep}</td>
                 </tr>
               ))}

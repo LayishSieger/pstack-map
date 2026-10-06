@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { loadUpstreamStatus } from "@/lib/actions";
 import type { UpstreamStatus } from "@/lib/upstream-types";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function Freshness({ initial }: { initial: UpstreamStatus | null }) {
   const [status, setStatus] = useState(initial);
@@ -26,35 +28,40 @@ export function Freshness({ initial }: { initial: UpstreamStatus | null }) {
   }, [status]);
 
   if (!status) return null;
-  if (status.error) return <p className="max-w-sm text-sm text-muted">{status.error}</p>;
+  if (status.error) {
+    return <p className="text-sm text-muted-foreground sm:ms-auto">{status.error}</p>;
+  }
 
   const stale = status.items.filter((item) => item.behind);
   if (stale.length === 0) {
     return (
-      <p className="text-sm text-muted">
-        <span className="text-fg">Up to date</span>
-        {" · "}
+      <p className="flex items-center gap-2 text-sm text-muted-foreground sm:ms-auto">
+        <Badge variant="outline">Up to date</Badge>
         checked {formatChecked(status.checkedAt)}
       </p>
     );
   }
 
   return (
-    <div className="basis-full rounded-card border border-mark bg-surface px-3 py-3">
-      <p className="text-sm font-medium">This map is out of date.</p>
-      <ul className="mt-2 space-y-2">
-        {stale.map((item) => (
-          <li key={item.id} className="text-sm leading-relaxed text-muted">
-            <span className="text-fg">{item.label}</span> moved{item.subject ? `: ${item.subject}` : ""}.{" "}
-            <a href={item.compareUrl} target="_blank" rel="noreferrer" className="text-accent">
-              See the commits
-            </a>
-            . Ask to update the site and the pins will move with it.
-          </li>
-        ))}
-      </ul>
-      <p className="mt-2 text-sm text-muted">Checked {formatChecked(status.checkedAt)}</p>
-    </div>
+    <Card className="basis-full ring-mark sm:basis-full">
+      <CardHeader>
+        <CardTitle>This map is out of date.</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-2">
+        <ul className="flex flex-col gap-2">
+          {stale.map((item) => (
+            <li key={item.id} className="text-sm leading-relaxed text-muted-foreground">
+              <span className="text-foreground">{item.label}</span> moved{item.subject ? `: ${item.subject}` : ""}.{" "}
+              <a href={item.compareUrl} target="_blank" rel="noreferrer" className="text-primary">
+                See the commits
+              </a>
+              . Ask to update the site and the pins will move with it.
+            </li>
+          ))}
+        </ul>
+        <p className="text-sm text-muted-foreground">Checked {formatChecked(status.checkedAt)}</p>
+      </CardContent>
+    </Card>
   );
 }
 
