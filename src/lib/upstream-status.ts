@@ -1,22 +1,10 @@
-import { createServerFn } from "@tanstack/react-start";
+import { after } from "next/server";
+import "server-only";
 import { watches, type Watch } from "@/data/upstream";
+import type { UpstreamItem, UpstreamStatus } from "@/lib/upstream-types";
 
 const TTL_MS = 60 * 60 * 1000;
 const ERROR_TTL_MS = 10 * 60 * 1000;
-
-export type UpstreamItem = {
-  id: Watch["id"];
-  label: string;
-  behind: boolean;
-  subject: string | null;
-  compareUrl: string;
-};
-
-export type UpstreamStatus = {
-  checkedAt: number;
-  items: UpstreamItem[];
-  error: string | null;
-};
 
 type Cache = UpstreamStatus & { pins: string };
 
@@ -27,16 +15,16 @@ function pinKey() {
   return watches.map((watch) => `${watch.id}:${watch.pinnedSha}:${watch.pinnedRelease ?? ""}`).join("|");
 }
 
-/** Returns the last check immediately. A cold cache starts a server-side refresh and does not wait on GitHub. */
-export const getUpstreamStatus = createServerFn({ method: "GET" }).handler(async (): Promise<UpstreamStatus | null> => {
+/** Returns the last check immediately. A cold cache refreshes after the response and does not wait on GitHub. */
+export function getUpstreamStatus(): UpstreamStatus | null {
   const pins = pinKey();
   const ttl = cache?.error ? ERROR_TTL_MS : TTL_MS;
   if (cache && cache.pins === pins && Date.now() - cache.checkedAt < ttl) {
     return { checkedAt: cache.checkedAt, items: cache.items, error: cache.error };
   }
-  void refresh(pins);
+  after(() => refresh(pins));
   return null;
-});
+}
 
 async function refresh(pins: string) {
   if (refreshing) return;
@@ -80,6 +68,7 @@ async function readWatch(watch: Watch): Promise<UpstreamItem> {
 
 async function githubJson<T>(url: string | URL): Promise<T> {
   const response = await fetch(url, {
+    cache: "no-store",
     headers: { Accept: "application/vnd.github+json", "User-Agent": "pstack-map" },
     signal: AbortSignal.timeout(8000),
   });

@@ -1,10 +1,12 @@
+"use client";
+
 import { useState } from "react";
 import { Freshness } from "@/components/freshness";
 import { Decide } from "@/components/decide";
 import { SkillMap } from "@/components/pstack-map";
 import { edges, flow, groups, nodes } from "@/data/pstack";
 import { pocockEdges, pocockFlow, pocockGroups, pocockNodes } from "@/data/pocock";
-import type { UpstreamStatus } from "@/lib/upstream-status";
+import type { UpstreamStatus } from "@/lib/upstream-types";
 
 const views = [
   { id: "pstack", label: "Pstack" },

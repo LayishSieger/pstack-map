@@ -1,5 +1,8 @@
+"use client";
+
 import { useEffect, useState } from "react";
-import { getUpstreamStatus, type UpstreamStatus } from "@/lib/upstream-status";
+import { loadUpstreamStatus } from "@/lib/actions";
+import type { UpstreamStatus } from "@/lib/upstream-types";
 
 export function Freshness({ initial }: { initial: UpstreamStatus | null }) {
   const [status, setStatus] = useState(initial);
@@ -9,9 +12,11 @@ export function Freshness({ initial }: { initial: UpstreamStatus | null }) {
     let cancelled = false;
     const timers = [1200, 4000].map((delay) =>
       window.setTimeout(() => {
-        void getUpstreamStatus().then((next) => {
-          if (!cancelled && next) setStatus(next);
-        });
+        void loadUpstreamStatus()
+          .then((next) => {
+            if (!cancelled && next) setStatus(next);
+          })
+          .catch(() => null);
       }, delay),
     );
     return () => {

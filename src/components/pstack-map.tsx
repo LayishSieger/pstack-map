@@ -1,3 +1,5 @@
+"use client";
+
 import { useMemo, useState } from "react";
 import { SkillSource } from "@/components/skill-source";
 import { ArrowRight, Search } from "lucide-react";
