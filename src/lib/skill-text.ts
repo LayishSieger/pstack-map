@@ -1,5 +1,5 @@
 import "server-only";
-import { blobUrl, docFor } from "@/data/docs";
+import { sourceOf } from "@/catalog";
 
 const TTL_MS = 15 * 60 * 1000;
 const MAX_CHARS = 80_000;
@@ -34,14 +34,13 @@ async function githubText(url: string): Promise<{ text: string; truncated: boole
 }
 
 export async function getSkillText(id: string): Promise<SkillText> {
-  const doc = docFor(id);
-  if (!doc) return empty;
-  const href = blobUrl(doc);
+  const source = sourceOf(id);
+  if (!source) return empty;
   try {
-    const loaded = await githubText(`https://raw.githubusercontent.com/${doc.repo}/main/${doc.path}`);
-    return { ok: true, text: loaded.text, href, truncated: loaded.truncated, error: null };
+    const loaded = await githubText(source.rawUrl);
+    return { ok: true, text: loaded.text, href: source.href, truncated: loaded.truncated, error: null };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not load the file.";
-    return { ok: false, text: "", href, truncated: false, error: message };
+    return { ok: false, text: "", href: source.href, truncated: false, error: message };
   }
 }

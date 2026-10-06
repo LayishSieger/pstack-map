@@ -1,29 +1,15 @@
-export type Kind = "skill" | "playbook" | "principle" | "agent";
+import type { Edge, FlowStep, SkillDraft } from "@/catalog/types";
 
-export type NodeItem = {
-  id: string;
-  title: string;
-  kind: Kind;
-  group: string;
-  blurb: string;
-};
+export const flow: readonly FlowStep[] = [
+  { skillId: "setup-pstack", label: "Setup" },
+  { skillId: "poteto-mode", label: "Router" },
+  { skillId: "investigation", label: "Playbook" },
+  { skillId: "how", label: "Skills" },
+  { skillId: "prove-it-works", label: "Prove" },
+  { skillId: "opening-a-pr", label: "Land" },
+];
 
-export type Edge = {
-  from: string;
-  to: string;
-  why: string;
-};
-
-export const flow = [
-  { id: "setup-pstack", label: "Setup" },
-  { id: "poteto-mode", label: "Router" },
-  { id: "playbooks", label: "Playbook" },
-  { id: "how", label: "Skills" },
-  { id: "prove-it-works", label: "Prove" },
-  { id: "opening-a-pr", label: "Land" },
-] as const;
-
-export const nodes: NodeItem[] = [
+export const nodes: SkillDraft[] = [
   {
     id: "poteto-mode",
     title: "/poteto-mode",
@@ -225,6 +211,7 @@ export const nodes: NodeItem[] = [
     title: "poteto-agent",
     kind: "agent",
     group: "Agents",
+    path: "pstack/agents/poteto-agent.md",
     blurb:
       "Subagent for playbook steps. Reads poteto-mode and the principle index before any work. generalPurpose skips that read and drifts.",
   },
@@ -233,6 +220,7 @@ export const nodes: NodeItem[] = [
     title: "Comment Sicko",
     kind: "agent",
     group: "Agents",
+    path: "pstack/agents/comment-sicko.md",
     blurb: "Read-only comment reviewer. Invoke it through no-comments, not directly.",
   },
   {
@@ -566,10 +554,7 @@ export const nodes: NodeItem[] = [
   },
 ];
 
-const playbookIds = nodes.filter((node) => node.kind === "playbook").map((node) => node.id);
-const principleIds = nodes.filter((node) => node.kind === "principle").map((node) => node.id);
-
-const routerSkills = [
+export const routerSkillIds = [
   "how",
   "why",
   "architect",
@@ -581,7 +566,7 @@ const routerSkills = [
   "technical-writing",
   "tdd",
   "figure-it-out",
-];
+] as const;
 
 export const edges: Edge[] = [
   {
@@ -589,21 +574,6 @@ export const edges: Edge[] = [
     to: "poteto-mode",
     why: "The model rule overrides which model each role and panel uses.",
   },
-  ...playbookIds.map((id) => ({
-    from: "poteto-mode",
-    to: id,
-    why: "Matched from the goal and the check. Steps are copied into the todo list.",
-  })),
-  ...routerSkills.map((id) => ({
-    from: "poteto-mode",
-    to: id,
-    why: "Called when a playbook step needs it, not up front.",
-  })),
-  ...principleIds.map((id) => ({
-    from: "poteto-mode",
-    to: id,
-    why: "The index is read at task start. The leaf skill is opened only if the principle is applied.",
-  })),
   { from: "poteto-help", to: "setup-pstack", why: "When no model rule exists and it matters, it asks you to run setup now or later." },
   { from: "poteto-help", to: "poteto-mode", why: "The default answer for real work. A help question does not start that work." },
   { from: "poteto-mode", to: "poteto-agent", why: "Code-writing delegates inside a playbook step." },
@@ -674,7 +644,6 @@ export const edges: Edge[] = [
 ];
 
 export const groups = [
-  "All",
   "Router",
   "Understand",
   "Design",
@@ -683,9 +652,11 @@ export const groups = [
   "Fix",
   "Diagnose",
   "Plan",
+  "Skills",
   "Ship",
   "Overnight",
   "Session",
+  "Housekeeping",
   "Meta",
   "Core",
   "Architecture",
@@ -693,7 +664,3 @@ export const groups = [
   "Delegation",
   "Agents",
 ] as const;
-
-export function nodeById(id: string) {
-  return nodes.find((node) => node.id === id);
-}

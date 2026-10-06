@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { SkillSource } from "@/components/skill-source";
 import { ArrowRight, ChevronDown, Search } from "lucide-react";
-import type { Edge, Kind, NodeItem } from "@/data/pstack";
+import { openPack, type Skill } from "@/catalog";
 import { cn } from "cn";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 
-const kindLabel: Record<Kind, string> = {
+const kindLabel: Record<Skill["kind"], string> = {
   skill: "Skill",
   playbook: "Playbook",
   principle: "Principle",
@@ -30,19 +30,14 @@ const kindLabel: Record<Kind, string> = {
 
 const desktopQuery = "(min-width: 64rem)";
 
-export type FlowStep = { id: string; label: string };
-
 type SkillMapProps = {
   kicker: string;
   title: string;
   lede: string;
-  nodes: NodeItem[];
-  edges: Edge[];
-  flow: readonly FlowStep[];
-  groups: readonly string[];
-  defaultId: string;
-  hubs?: Record<string, string>;
+  pack: "pstack" | "pocock";
 };
+
+type Call = { skill: Skill; why: string };
 
 function BrowseColumn({
   contained,
@@ -57,7 +52,6 @@ function BrowseColumn({
   visibleCount,
   totalCount,
   flow,
-  hubs,
   selectedId,
   onStep,
   visible,
@@ -76,11 +70,10 @@ function BrowseColumn({
   onGroup: (value: string) => void;
   visibleCount: number;
   totalCount: number;
-  flow: readonly FlowStep[];
-  hubs: Record<string, string>;
+  flow: readonly { label: string; skillId: string; active: boolean }[];
   selectedId: string;
-  onStep: (targetId: string) => void;
-  visible: NodeItem[];
+  onStep: (skillId: string) => void;
+  visible: readonly Skill[];
   linked: Set<string>;
   showLinks: boolean;
   onSelect: (id: string) => void;
@@ -115,22 +108,20 @@ function BrowseColumn({
 
       <ol className="flex shrink-0 snap-x scroll-ps-1 items-center gap-2 overflow-x-auto p-1">
         {flow.map((step, index) => {
-          const targetId = hubs[step.id] ?? step.id;
-          const active = selectedId === targetId || selectedId === step.id;
           return (
-            <li key={step.id} className="flex shrink-0 snap-start items-center gap-2">
+            <li key={step.skillId} className="flex shrink-0 snap-start items-center gap-2">
               <button
                 type="button"
-                aria-pressed={active}
-                onClick={() => onStep(targetId)}
+                aria-pressed={step.active}
+                onClick={() => onStep(step.skillId)}
                 className={cn(
                   "min-h-11 rounded-lg border px-3 py-1.5 text-left",
-                  active
+                  step.active
                     ? "border-primary bg-secondary text-foreground ring-1 ring-primary"
                     : "border-border bg-card text-muted-foreground",
                 )}
               >
-                <span className={cn("block font-mono text-xs", active ? "text-foreground" : "text-muted-foreground")}>
+                <span className={cn("block font-mono text-xs", step.active ? "text-foreground" : "text-muted-foreground")}>
                   0{index + 1}
                 </span>
                 <span className="block text-sm font-medium text-foreground">{step.label}</span>
@@ -172,24 +163,13 @@ function BrowseColumn({
   );
 }
 
-export function SkillMap({
-  kicker,
-  title,
-  lede,
-  nodes,
-  edges,
-  flow,
-  groups,
-  defaultId,
-  hubs = {},
-}: SkillMapProps) {
+export function SkillMap({ kicker, title, lede, pack }: SkillMapProps) {
   const [query, setQuery] = useState("");
   const [group, setGroup] = useState("All");
-  const [selectedId, setSelectedId] = useState(defaultId);
+  const [selectedId, setSelectedId] = useState<string | undefined>();
   const [sheetOpen, setSheetOpen] = useState(false);
-
-  const byId = useMemo(() => new Map(nodes.map((node) => [node.id, node])), [nodes]);
-  const selected = byId.get(selectedId) ?? nodes[0];
+  const view = openPack(pack, { query, group, selectedId });
+  const selected = view.selected;
 
   useEffect(() => {
     const media = window.matchMedia(desktopQuery);
@@ -200,25 +180,10 @@ export function SkillMap({
     return () => media.removeEventListener("change", closeOnDesktop);
   }, []);
 
-  const visible = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return nodes.filter((node) => {
-      if (group !== "All" && node.group !== group) return false;
-      if (!q) return true;
-      return (
-        node.title.toLowerCase().includes(q) ||
-        node.blurb.toLowerCase().includes(q) ||
-        node.group.toLowerCase().includes(q)
-      );
-    });
-  }, [group, nodes, query]);
-
-  const outgoing = edges.filter((edge) => edge.from === selected.id);
-  const incoming = edges.filter((edge) => edge.to === selected.id);
   const linked = new Set<string>([
     selected.id,
-    ...outgoing.map((edge) => edge.to),
-    ...incoming.map((edge) => edge.from),
+    ...view.calls.map((call) => call.skill.id),
+    ...view.calledBy.map((call) => call.skill.id),
   ]);
   const showLinks = linked.size <= 16;
 
@@ -236,20 +201,19 @@ export function SkillMap({
       lede={lede}
       query={query}
       onQuery={setQuery}
-      groups={groups}
+      groups={view.groups}
       group={group}
       onGroup={setGroup}
-      visibleCount={visible.length}
-      totalCount={nodes.length}
-      flow={flow}
-      hubs={hubs}
+      visibleCount={view.shown}
+      totalCount={view.total}
+      flow={view.flow}
       selectedId={selected.id}
-      onStep={(targetId) => {
+      onStep={(skillId) => {
         setGroup("All");
         setQuery("");
-        selectNode(targetId);
+        selectNode(skillId);
       }}
-      visible={visible}
+      visible={view.visible}
       linked={linked}
       showLinks={showLinks}
       onSelect={selectNode}
@@ -269,9 +233,8 @@ export function SkillMap({
               <SkillDetail
                 key={selected.id}
                 selected={selected}
-                outgoing={outgoing}
-                incoming={incoming}
-                byId={byId}
+                calls={view.calls}
+                calledBy={view.calledBy}
                 onSelect={selectNode}
               />
             </div>
@@ -296,9 +259,8 @@ export function SkillMap({
           <div key={selected.id} className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-4 pb-6">
             <SkillBody
               selectedId={selected.id}
-              outgoing={outgoing}
-              incoming={incoming}
-              byId={byId}
+              calls={view.calls}
+              calledBy={view.calledBy}
               onSelect={selectNode}
             />
           </div>
@@ -310,15 +272,13 @@ export function SkillMap({
 
 function SkillDetail({
   selected,
-  outgoing,
-  incoming,
-  byId,
+  calls,
+  calledBy,
   onSelect,
 }: {
-  selected: NodeItem;
-  outgoing: Edge[];
-  incoming: Edge[];
-  byId: Map<string, NodeItem>;
+  selected: Skill;
+  calls: readonly Call[];
+  calledBy: readonly Call[];
   onSelect: (id: string) => void;
 }) {
   return (
@@ -330,34 +290,26 @@ function SkillDetail({
         <h2 className="font-mono text-lg font-medium">{selected.title}</h2>
         <p className="text-sm leading-relaxed text-muted-foreground">{selected.blurb}</p>
       </div>
-      <SkillBody
-        selectedId={selected.id}
-        outgoing={outgoing}
-        incoming={incoming}
-        byId={byId}
-        onSelect={onSelect}
-      />
+      <SkillBody selectedId={selected.id} calls={calls} calledBy={calledBy} onSelect={onSelect} />
     </div>
   );
 }
 
 function SkillBody({
   selectedId,
-  outgoing,
-  incoming,
-  byId,
+  calls,
+  calledBy,
   onSelect,
 }: {
   selectedId: string;
-  outgoing: Edge[];
-  incoming: Edge[];
-  byId: Map<string, NodeItem>;
+  calls: readonly Call[];
+  calledBy: readonly Call[];
   onSelect: (id: string) => void;
 }) {
   return (
     <>
-      <ConnectionList title="Calls" items={outgoing} direction="to" byId={byId} onSelect={onSelect} />
-      <ConnectionList title="Called by" items={incoming} direction="from" byId={byId} onSelect={onSelect} />
+      <ConnectionList title="Calls" items={calls} onSelect={onSelect} />
+      <ConnectionList title="Called by" items={calledBy} onSelect={onSelect} />
       <Separator />
       <SkillSource id={selectedId} />
     </>
@@ -417,7 +369,7 @@ function NodeCard({
   linked,
   onSelect,
 }: {
-  node: NodeItem;
+  node: Skill;
   active: boolean;
   linked: boolean;
   onSelect: () => void;
@@ -442,14 +394,10 @@ function NodeCard({
 function ConnectionList({
   title,
   items,
-  direction,
-  byId,
   onSelect,
 }: {
   title: string;
-  items: Edge[];
-  direction: "to" | "from";
-  byId: Map<string, NodeItem>;
+  items: readonly Call[];
   onSelect: (id: string) => void;
 }) {
   return (
@@ -459,20 +407,18 @@ function ConnectionList({
         <p className="text-sm text-muted-foreground">None on this map.</p>
       ) : (
         <ul className="flex flex-col gap-1">
-          {items.slice(0, 8).map((edge) => {
-            const id = direction === "to" ? edge.to : edge.from;
-            const node = byId.get(id);
+          {items.slice(0, 8).map((call) => {
             return (
-              <li key={`${edge.from}-${edge.to}`}>
+              <li key={call.skill.id}>
                 <button
                   type="button"
-                  onClick={() => onSelect(id)}
+                  onClick={() => onSelect(call.skill.id)}
                   className="w-full rounded-lg px-2 py-2 text-left hover:bg-muted"
                 >
                   <span className="font-mono text-sm text-foreground underline-offset-4 hover:underline">
-                    {node?.title ?? id}
+                    {call.skill.title}
                   </span>
-                  <span className="mt-0.5 block text-sm leading-relaxed text-muted-foreground">{edge.why}</span>
+                  <span className="mt-0.5 block text-sm leading-relaxed text-muted-foreground">{call.why}</span>
                 </button>
               </li>
             );
