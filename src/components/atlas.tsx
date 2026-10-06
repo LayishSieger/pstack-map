@@ -4,6 +4,7 @@ import { Decide } from "@/components/decide";
 import { SkillMap } from "@/components/pstack-map";
 import { edges, flow, groups, nodes } from "@/data/pstack";
 import { pocockEdges, pocockFlow, pocockGroups, pocockNodes } from "@/data/pocock";
+import type { UpstreamStatus } from "@/lib/upstream-status";
 
 const views = [
   { id: "pstack", label: "Pstack" },
@@ -13,7 +14,7 @@ const views = [
 
 type ViewId = (typeof views)[number]["id"];
 
-export function Atlas() {
+export function Atlas({ initialStatus }: { initialStatus: UpstreamStatus | null }) {
   const [view, setView] = useState<ViewId>("decide");
 
   return (
@@ -33,7 +34,7 @@ export function Atlas() {
             </button>
           ))}
         </div>
-        <Freshness />
+        <Freshness initial={initialStatus} />
       </div>
 
       {view === "pstack" ? (

@@ -13,7 +13,7 @@ npm run dev
 
 The app serves on port 8080.
 
-Pins for “out of date” live in [src/data/upstream.ts](src/data/upstream.ts). When you refresh the map, move those pins in the same change. The page checks them from the browser and remembers the result for an hour, so a refresh does not ask GitHub again. The map stays usable while that check runs.
+Pins for “out of date” live in [src/data/upstream.ts](src/data/upstream.ts). When you refresh the map, move those pins in the same change. The server remembers a check for an hour. The page does not call GitHub itself, and it does not wait on that check before you can use the map.
 
 ## Vercel
 
