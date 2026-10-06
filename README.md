@@ -17,7 +17,7 @@ Pins for “out of date” live in [src/data/upstream.ts](src/data/upstream.ts).
 
 ## Vercel
 
-Import this repository. The build command is `npm run build`. Nitro’s Vercel preset serves the app, including the server function that reads skill files. No environment variables are required.
+Import this repository. Next.js is the framework and the build command is `npm run build`. Server actions read skill files and check upstream. No environment variables are required.
 
 ## Mail when upstream moves
 

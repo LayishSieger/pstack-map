@@ -9,8 +9,8 @@
   --color-accent: #3dceb0;
   --color-mark: #e2a44a;
   --color-line: #2c3644;
-  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --font-sans: var(--font-ibm-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-ibm-mono), ui-monospace, monospace;
   --radius-card: 0.75rem;
 }
 

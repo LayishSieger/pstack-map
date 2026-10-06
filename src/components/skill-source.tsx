@@ -1,6 +1,8 @@
+"use client";
+
 import { useEffect, useState } from "react";
 import { docFor } from "@/data/docs";
-import { getSkillText } from "@/lib/upstream.functions";
+import { loadSkillText } from "@/lib/actions";
 
 type Load = {
   status: "idle" | "loading" | "ready" | "error";
@@ -31,14 +33,24 @@ export function SkillSource({ id }: { id: string }) {
   async function read() {
     setOpen(true);
     setLoad((current) => ({ ...current, status: "loading", error: null }));
-    const result = await getSkillText({ data: { id } });
-    setLoad({
-      status: result.ok ? "ready" : "error",
-      text: result.text,
-      href: result.href,
-      truncated: result.truncated,
-      error: result.error,
-    });
+    try {
+      const result = await loadSkillText(id);
+      setLoad({
+        status: result.ok ? "ready" : "error",
+        text: result.text,
+        href: result.href,
+        truncated: result.truncated,
+        error: result.error,
+      });
+    } catch {
+      setLoad({
+        status: "error",
+        text: "",
+        href: "",
+        truncated: false,
+        error: "Could not load the file.",
+      });
+    }
   }
 
   return (

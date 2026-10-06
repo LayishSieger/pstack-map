@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from "react";
 import { choices, jobs, type ChoiceId } from "@/data/decide";
 
