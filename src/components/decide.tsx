@@ -7,7 +7,7 @@ import { cn } from "cn";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function Decide() {
-  const { choices, jobs } = compare();
+  const { choices, columns, jobs } = compare();
   const [choiceId, setChoiceId] = useState<ChoiceId>("hybrid");
   const choice = choices.find((item) => item.id === choiceId) ?? choices[2];
 
@@ -81,14 +81,12 @@ export function Decide() {
                   <CardTitle>{row.job}</CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-2 text-sm leading-relaxed">
-                  <p>
-                    <span className="text-muted-foreground">Pstack. </span>
-                    {row.pstack.map((skill) => skill.title).join(", ")}
-                  </p>
-                  <p>
-                    <span className="text-muted-foreground">Pocock. </span>
-                    {row.pocock.map((skill) => skill.title).join(", ")}
-                  </p>
+                  {columns.map((column) => (
+                    <p key={column.id}>
+                      <span className="text-muted-foreground">{column.label}. </span>
+                      <SkillNames skills={row.packs[column.id]} />
+                    </p>
+                  ))}
                   <p>
                     <span className="text-muted-foreground">Keep. </span>
                     {row.keep}
@@ -103,8 +101,11 @@ export function Decide() {
             <thead className="text-muted-foreground">
               <tr>
                 <th className="px-3 py-2 font-medium">Job</th>
-                <th className="px-3 py-2 font-medium">Pstack</th>
-                <th className="px-3 py-2 font-medium">Pocock</th>
+                {columns.map((column) => (
+                  <th key={column.id} className="px-3 py-2 font-medium">
+                    {column.label}
+                  </th>
+                ))}
                 <th className="px-3 py-2 font-medium">Keep</th>
               </tr>
             </thead>
@@ -112,8 +113,11 @@ export function Decide() {
               {jobs.map((row) => (
                 <tr key={row.job} className="border-t border-border align-top">
                   <td className="px-3 py-2 font-medium">{row.job}</td>
-                  <td className="px-3 py-2 text-muted-foreground">{row.pstack.map((skill) => skill.title).join(", ")}</td>
-                  <td className="px-3 py-2 text-muted-foreground">{row.pocock.map((skill) => skill.title).join(", ")}</td>
+                  {columns.map((column) => (
+                    <td key={column.id} className="px-3 py-2 text-muted-foreground">
+                      <SkillNames skills={row.packs[column.id]} />
+                    </td>
+                  ))}
                   <td className="px-3 py-2">{row.keep}</td>
                 </tr>
               ))}
@@ -123,4 +127,15 @@ export function Decide() {
       </section>
     </div>
   );
+}
+
+function SkillNames({ skills }: { skills: readonly { id: string; title: string }[] }) {
+  return skills.map((skill, index) => (
+    <span key={skill.id}>
+      {index > 0 ? ", " : null}
+      <a href={`/skills/${skill.id}`} className="text-foreground underline-offset-4 hover:underline">
+        {skill.title}
+      </a>
+    </span>
+  ));
 }

@@ -1,3 +1,4 @@
+import { watches } from "../data/upstream.ts";
 import { choices, jobs } from "../data/decide.ts";
 import {
   edges as pstackHandEdges,
@@ -7,9 +8,9 @@ import {
   routerSkillIds,
 } from "../data/pstack.ts";
 import { pocockEdges, pocockFlow, pocockGroups, pocockNodes } from "../data/pocock.ts";
-import type { Edge, FlowStep, Repo, Skill, SkillDraft } from "./types.ts";
+import type { Edge, FlowStep, PackId, Repo, Skill, SkillDraft } from "./types.ts";
 
-export type { Skill } from "./types.ts";
+export type { PackId, Skill } from "./types.ts";
 
 const PLAYBOOK_WHY = "Matched from the goal and the check. Steps are copied into the todo list.";
 const ROUTER_WHY = "Called when a playbook step needs it, not up front.";
@@ -38,8 +39,6 @@ export type Source = {
   href: string;
   rawUrl: string;
 };
-
-type PackId = "pstack" | "pocock";
 
 type Pack = {
   id: PackId;
@@ -166,6 +165,8 @@ function buildPack(input: {
   return pack;
 }
 
+// A new pack is a data module, a PackId, a Repo, a watch in src/data/upstream.ts, and a packViews entry.
+// Compare columns are the packs a job actually names, so an uncompared pack can ship as a tab first.
 const packs: Record<PackId, Pack> = {
   pstack: buildPack({
     id: "pstack",
@@ -205,12 +206,38 @@ function resolveJobSkills(ids: readonly string[], pack: Pack, job: string): Skil
   });
 }
 
+export const packViews: readonly {
+  id: PackId;
+  label: string;
+  kicker: string;
+  title: string;
+  lede: string;
+}[] = [
+  {
+    id: "pstack",
+    label: "Pstack",
+    kicker: "pstack",
+    title: "Skill map",
+    lede: "Name a goal and a check. The router picks one playbook, copies its steps into a todo list, and calls the other skills only when a step needs them.",
+  },
+  {
+    id: "pocock",
+    label: "Pocock",
+    kicker: "matt pocock",
+    title: "Skill map",
+    lede: "Small skills you invoke. A user-invoked skill may call a model-invoked one, not another user-invoked skill. The main path is grill, spec, tickets, then either one ticket at a time or the whole graph.",
+  },
+];
+
 const resolvedJobs = jobs.map((job) => ({
   job: job.job,
-  pstack: resolveJobSkills(job.pstack, packs.pstack, job.job),
-  pocock: resolveJobSkills(job.pocock, packs.pocock, job.job),
   keep: job.keep,
+  packs: Object.fromEntries(
+    packViews.map((pack) => [pack.id, resolveJobSkills(job.packs[pack.id] ?? [], packs[pack.id], job.job)]),
+  ) as Record<PackId, Skill[]>,
 }));
+
+const compareColumns = packViews.filter((pack) => jobs.some((job) => pack.id in job.packs));
 
 function linked(pack: Pack, id: string, direction: "from" | "to") {
   return pack.edges
@@ -252,17 +279,27 @@ export function openPack(packId: PackId, state: MapState = {}): MapView {
   };
 }
 
+export function skillsFor(packId: PackId): readonly Skill[] {
+  return packs[packId].skills;
+}
+
 export function sourceOf(id: string): Source | null {
   const skill = skillsById.get(id);
   if (!skill) return null;
+  const watch = watches.find((item) => item.repo === skill.repo);
+  if (!watch) return null;
   return {
     repo: skill.repo,
     path: skill.path,
-    href: `https://github.com/${skill.repo}/blob/main/${skill.path}`,
-    rawUrl: `https://raw.githubusercontent.com/${skill.repo}/main/${skill.path}`,
+    href: `https://github.com/${skill.repo}/blob/${watch.pinnedSha}/${skill.path}`,
+    rawUrl: `https://raw.githubusercontent.com/${skill.repo}/${watch.pinnedSha}/${skill.path}`,
   };
 }
 
 export function compare() {
-  return { choices, jobs: resolvedJobs };
+  return {
+    choices,
+    columns: compareColumns.map((pack) => ({ id: pack.id, label: pack.label })),
+    jobs: resolvedJobs,
+  };
 }

@@ -1,6 +1,6 @@
-import { after } from "next/server";
 import "server-only";
 import { watches, type Watch } from "@/data/upstream";
+import { githubHeaders } from "@/lib/github";
 import type { UpstreamItem, UpstreamStatus } from "@/lib/upstream-types";
 
 const TTL_MS = 60 * 60 * 1000;
@@ -21,14 +21,6 @@ function fresh(): UpstreamStatus | null {
   if (cache && cache.pins === pins && Date.now() - cache.checkedAt < ttl) {
     return { checkedAt: cache.checkedAt, items: cache.items, error: cache.error };
   }
-  return null;
-}
-
-/** Returns the last check immediately. A cold cache refreshes after the response and does not wait on GitHub. */
-export function getUpstreamStatus(): UpstreamStatus | null {
-  const hit = fresh();
-  if (hit) return hit;
-  after(() => refresh(pinKey()));
   return null;
 }
 
@@ -93,8 +85,8 @@ async function readWatch(watch: Watch): Promise<UpstreamItem> {
 
 async function githubJson<T>(url: string | URL): Promise<T> {
   const response = await fetch(url, {
-    cache: "no-store",
-    headers: { Accept: "application/vnd.github+json", "User-Agent": "pstack-map" },
+    headers: githubHeaders({ Accept: "application/vnd.github+json" }),
+    next: { revalidate: 3600 },
     signal: AbortSignal.timeout(8000),
   });
   if (response.status === 403 || response.status === 429) {

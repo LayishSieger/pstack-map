@@ -1,5 +1,5 @@
 {
-  "name": "pstack-map",
+  "name": "skill-atlas",
   "private": true,
   "sideEffects": false,
   "type": "module",
@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start --hostname 127.0.0.1 --port 8081",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "node --experimental-strip-types --test src/catalog/catalog.test.ts src/lib/skill-markdown.test.ts"
+    "test": "node --experimental-strip-types --test src/catalog/catalog.test.ts src/lib/skill-markdown.test.ts src/lib/negotiate.test.ts src/lib/rate-limit.test.ts src/lib/public-copy.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
