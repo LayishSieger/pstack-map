@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { SkillSource } from "@/components/skill-source";
 import { ArrowRight, ChevronDown, Search } from "lucide-react";
-import { openPack, type Skill } from "@/catalog";
+import { openPack, type PackId, type Skill } from "@/catalog";
 import { cn } from "cn";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,7 +34,7 @@ type SkillMapProps = {
   kicker: string;
   title: string;
   lede: string;
-  pack: "pstack" | "pocock";
+  pack: PackId;
 };
 
 type Call = { skill: Skill; why: string };

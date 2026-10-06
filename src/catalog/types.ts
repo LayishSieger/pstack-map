@@ -1,5 +1,9 @@
 export type Kind = "skill" | "playbook" | "principle" | "agent";
 
+/** Add an id here when a pack joins the atlas. gstack and a still-unnamed own pack are next. */
+export type PackId = "pstack" | "pocock";
+
+/** Add the GitHub repo here in the same change as the pack. */
 export type Repo = "cursor/plugins" | "mattpocock/skills";
 
 /** A skill record before the catalog fills in its source path. */

@@ -11,30 +11,29 @@ if (!token) {
 const src = readFileSync(new URL("../src/data/upstream.ts", import.meta.url), "utf8");
 const blocks = [
   ...src.matchAll(
-    /id: "(pstack|pocock)"[\s\S]*?pinnedSha: "([a-f0-9]+)"[\s\S]*?pinnedRelease: (null|"[^"]+")/g,
+    /id: "([^"]+)"[\s\S]*?label: "([^"]+)"[\s\S]*?repo: "([^"]+)"[\s\S]*?path: "([^"]*)"[\s\S]*?pinnedSha: "([a-f0-9]+)"[\s\S]*?pinnedRelease: (null|"[^"]+")/g,
   ),
 ];
-if (blocks.length !== 2) {
-  console.error("Could not read both pins from src/data/upstream.ts");
+if (blocks.length < 2) {
+  console.error("Could not read the pins from src/data/upstream.ts");
   process.exit(1);
 }
 
-const pins = Object.fromEntries(
-  blocks.map((match) => [
-    match[1],
-    {
-      sha: match[2],
-      release: match[3] === "null" ? null : match[3].slice(1, -1),
-    },
-  ]),
-);
+const pins = blocks.map((match) => ({
+  id: match[1],
+  label: match[2],
+  repo: match[3],
+  path: match[4],
+  sha: match[5],
+  release: match[6] === "null" ? null : match[6].slice(1, -1),
+}));
 
 async function ghJson(path) {
   const response = await fetch(`https://api.github.com${path}`, {
     headers: {
       Accept: "application/vnd.github+json",
       Authorization: `Bearer ${token}`,
-      "User-Agent": "pstack-map-upstream-check",
+      "User-Agent": "skill-atlas-upstream-check",
       "X-GitHub-Api-Version": "2022-11-28",
     },
   });
@@ -53,34 +52,35 @@ function gh(args, input) {
   });
 }
 
-const pstackCommit = (await ghJson("/repos/cursor/plugins/commits?sha=main&per_page=1&path=pstack"))[0];
-const pocockCommit = (await ghJson("/repos/mattpocock/skills/commits?sha=main&per_page=1"))[0];
-const pocockRelease = await ghJson("/repos/mattpocock/skills/releases/latest");
-
-const latest = {
-  pstack: { sha: pstackCommit.sha, subject: pstackCommit.commit.message.split("\n")[0] },
-  pocock: { sha: pocockCommit.sha, subject: pocockCommit.commit.message.split("\n")[0] },
-  release: pocockRelease.tag_name,
-};
+const latest = [];
+for (const pin of pins) {
+  const commitsPath = `/repos/${pin.repo}/commits?sha=main&per_page=1${pin.path ? `&path=${encodeURIComponent(pin.path)}` : ""}`;
+  const commit = (await ghJson(commitsPath))[0];
+  latest.push({
+    ...pin,
+    head: commit.sha,
+    subject: commit.commit.message.split("\n")[0],
+    releaseTag: pin.release ? (await ghJson(`/repos/${pin.repo}/releases/latest`)).tag_name : null,
+  });
+}
 
 const moved = [];
-if (latest.pstack.sha !== pins.pstack.sha) {
-  moved.push(
-    `- **pstack** moved on \`cursor/plugins\` (\`pstack/\`): ${latest.pstack.subject}\n  ${latest.pstack.sha}\n  https://github.com/cursor/plugins/commits/main/pstack`,
-  );
-}
-if (latest.pocock.sha !== pins.pocock.sha) {
-  moved.push(
-    `- **Matt Pocock skills** \`main\` moved: ${latest.pocock.subject}\n  https://github.com/mattpocock/skills/compare/${pins.pocock.sha}...main`,
-  );
-}
-if (pins.pocock.release && latest.release !== pins.pocock.release) {
-  moved.push(
-    `- **Matt Pocock skills** release is \`${latest.release}\` (pin is \`${pins.pocock.release}\`).\n  https://github.com/mattpocock/skills/releases/tag/${latest.release}`,
-  );
+for (const item of latest) {
+  if (item.head !== item.sha) {
+    const where = item.path ? ` (\`${item.path}/\` on \`${item.repo}\`)` : ` (\`${item.repo}\`)`;
+    const link = item.path
+      ? `https://github.com/${item.repo}/commits/main/${item.path}`
+      : `https://github.com/${item.repo}/compare/${item.sha}...main`;
+    moved.push(`- **${item.label}** moved${where}: ${item.subject}\n  ${item.head}\n  ${link}`);
+  }
+  if (item.release && item.releaseTag !== item.release) {
+    moved.push(
+      `- **${item.label}** release is \`${item.releaseTag}\` (pin is \`${item.release}\`).\n  https://github.com/${item.repo}/releases/tag/${item.releaseTag}`,
+    );
+  }
 }
 
-const marker = `<!-- drift pstack=${latest.pstack.sha} pocock=${latest.pocock.sha} release=${latest.release} -->`;
+const marker = `<!-- drift ${latest.map((item) => `${item.id}=${item.head}${item.releaseTag ? ` release=${item.releaseTag}` : ""}`).join(" ")} -->`;
 const open = JSON.parse(
   gh([
     "issue",

@@ -1,8 +1,10 @@
-# pstack map
+# Skill atlas
 
-Map of [pstack](https://github.com/cursor/plugins/tree/main/pstack) and [Matt Pocock skills](https://github.com/mattpocock/skills): what each skill calls, when to keep one flow, and a hybrid.
+A map of agent skill packs, and which flow to run.
 
-Skill text is loaded from those repos when you open a card. This repository does not copy those files.
+Today the map covers [pstack](https://github.com/cursor/plugins/tree/main/pstack) and [Matt Pocock's skills](https://github.com/mattpocock/skills). gstack is the next pack. A pack of my own is planned and does not have a name yet. The site is named for the atlas, not for the first pack inside it.
+
+Skill text is loaded from the pinned commit when you open a card or a skill page. This repository does not copy those files. Each pack stays under its own MIT license. The map, the compare guide, and this site are MIT, Copyright (c) 2026 Layish Sieger.
 
 ## Develop
 
@@ -17,7 +19,11 @@ Pins for “out of date” live in [src/data/upstream.ts](src/data/upstream.ts).
 
 ## Vercel
 
-Import this repository. Next.js is the framework and the build command is `npm run build`. Server actions read skill files and check upstream. No environment variables are required.
+Import this repository. Next.js is the framework and the build command is `npm run build`. The build fetches each pinned skill file, so it needs network access to GitHub.
+
+`GITHUB_TOKEN` is optional. Set it on the server to raise GitHub's rate limit for skill text and the freshness check. The site works without it: skill URLs are the pinned commit, and those responses are cached. The token is not sent to the browser.
+
+A new pack is a data module, a `PackId`, a `Repo`, a watch in `src/data/upstream.ts`, and a `packViews` entry. Compare columns are only the packs a job names, so a pack can ship as its own tab before it joins the comparison.
 
 ## Mail when upstream moves
 

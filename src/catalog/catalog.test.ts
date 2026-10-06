@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { watches } from "../data/upstream.ts";
 import { compare, openPack, sourceOf } from "./index.ts";
 
 test("the playbook step opens investigation", () => {
@@ -75,9 +76,11 @@ test("source paths follow the kind", () => {
   assert.equal(sourceOf("missing"), null);
 
   const how = sourceOf("how");
+  const pin = watches.find((watch) => watch.repo === "cursor/plugins");
   assert.equal(how?.repo, "cursor/plugins");
-  assert.equal(how?.href, "https://github.com/cursor/plugins/blob/main/pstack/skills/how/SKILL.md");
-  assert.equal(how?.rawUrl, "https://raw.githubusercontent.com/cursor/plugins/main/pstack/skills/how/SKILL.md");
+  assert.equal(how?.href, `https://github.com/cursor/plugins/blob/${pin?.pinnedSha}/pstack/skills/how/SKILL.md`);
+  assert.equal(how?.rawUrl, `https://raw.githubusercontent.com/cursor/plugins/${pin?.pinnedSha}/pstack/skills/how/SKILL.md`);
+  assert.equal(how?.rawUrl.includes("/main/"), false);
 });
 
 test("every skill has one source and compare names real skills", () => {
@@ -94,7 +97,11 @@ test("every skill has one source and compare names real skills", () => {
   }
 
   const sharpen = compare().jobs.find((job) => job.job === "Sharpen the idea");
-  assert.equal(sharpen?.pstack[0]?.id, "investigation");
-  assert.equal(sharpen?.pocock[0]?.title, "/grill-with-docs");
+  assert.equal(sharpen?.packs.pstack[0]?.id, "investigation");
+  assert.equal(sharpen?.packs.pocock[0]?.title, "/grill-with-docs");
+  assert.deepEqual(
+    compare().columns.map((column) => column.id),
+    ["pstack", "pocock"],
+  );
   assert.equal(compare().choices.length, 3);
 });

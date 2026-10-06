@@ -1,3 +1,5 @@
+import type { PackId } from "../catalog/types.ts";
+
 export type ChoiceId = "pstack" | "pocock" | "hybrid";
 
 export type Choice = {
@@ -69,71 +71,64 @@ export const choices: Choice[] = [
   },
 ];
 
-export const jobs: { job: string; pstack: readonly string[]; pocock: readonly string[]; keep: string }[] = [
+export const jobs: {
+  job: string;
+  keep: string;
+  packs: Partial<Record<PackId, readonly string[]>>;
+}[] = [
   {
     job: "Sharpen the idea",
-    pstack: ["investigation"],
-    pocock: ["mp-grill-with-docs"],
+    packs: { pstack: ["investigation"], pocock: ["mp-grill-with-docs"] },
     keep: "Pocock. It leaves a glossary.",
   },
   {
     job: "Understand this code",
-    pstack: ["how", "why", "teach"],
-    pocock: ["mp-research"],
+    packs: { pstack: ["how", "why", "teach"], pocock: ["mp-research"] },
     keep: "Pstack for the repo. Pocock research for outside sources.",
   },
   {
     job: "Design a seam",
-    pstack: ["architect", "arena"],
-    pocock: ["mp-codebase-design", "mp-prototype"],
+    packs: { pstack: ["architect", "arena"], pocock: ["mp-codebase-design", "mp-prototype"] },
     keep: "Pocock prototype to decide. Pstack architect before code crosses a boundary.",
   },
   {
     job: "Plan across sessions",
-    pstack: ["multi-phase-plan"],
-    pocock: ["mp-to-spec", "mp-to-tickets", "mp-wayfinder"],
+    packs: { pstack: ["multi-phase-plan"], pocock: ["mp-to-spec", "mp-to-tickets", "mp-wayfinder"] },
     keep: "Pocock. The tracker holds the graph.",
   },
   {
     job: "Build one change",
-    pstack: ["feature", "bug-fix", "refactoring"],
-    pocock: ["mp-implement"],
+    packs: { pstack: ["feature", "bug-fix", "refactoring"], pocock: ["mp-implement"] },
     keep: "One. Hybrid uses the pstack playbook.",
   },
   {
     job: "Build a whole graph",
-    pstack: ["orchestrate", "autopilot-stack"],
-    pocock: ["mp-implement-spec"],
+    packs: { pstack: ["orchestrate", "autopilot-stack"], pocock: ["mp-implement-spec"] },
     keep: "One orchestrator. Do not run both.",
   },
   {
     job: "Tests",
-    pstack: ["tdd", "prove-it-works"],
-    pocock: ["mp-tdd"],
+    packs: { pstack: ["tdd", "prove-it-works"], pocock: ["mp-tdd"] },
     keep: "Whoever is building. Add prove-it-works if pstack is building.",
   },
   {
     job: "Review",
-    pstack: ["interrogate", "no-comments"],
-    pocock: ["mp-code-review"],
+    packs: { pstack: ["interrogate", "no-comments"], pocock: ["mp-code-review"] },
     keep: "code-review when a spec exists. interrogate if it does not.",
   },
   {
     job: "Pull request",
-    pstack: ["opening-a-pr", "babysit"],
-    pocock: ["mp-pr"],
+    packs: { pstack: ["opening-a-pr", "babysit"], pocock: ["mp-pr"] },
     keep: "Pocock's shape, pstack's playbook. Babysit only if you want CI driven.",
   },
   {
     job: "After the session",
-    pstack: ["reflect", "correct"],
-    pocock: ["mp-retro", "mp-handoff"],
+    packs: { pstack: ["reflect", "correct"], pocock: ["mp-retro", "mp-handoff"] },
     keep: "retro and handoff for the repo. reflect only for the agent setup.",
   },
   {
     job: "Hard bug",
-    pstack: ["bug-fix", "runtime-forensics"],
-    pocock: ["mp-diagnosing-bugs"],
+    packs: { pstack: ["bug-fix", "runtime-forensics"], pocock: ["mp-diagnosing-bugs"] },
     keep: "Pstack if you want the fix playbook end to end. diagnosing-bugs if you only want the loop.",
   },
 ];

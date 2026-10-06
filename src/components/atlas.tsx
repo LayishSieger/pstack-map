@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { packViews, type PackId } from "@/catalog";
 import { Freshness } from "@/components/freshness";
 import { Decide } from "@/components/decide";
 import { SkillMap } from "@/components/pstack-map";
@@ -8,15 +10,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { UpstreamStatus } from "@/lib/upstream-types";
 
 const views = [
-  { id: "pstack", label: "Pstack" },
-  { id: "pocock", label: "Pocock" },
-  { id: "decide", label: "Compare" },
-] as const;
+  ...packViews.map((pack) => ({ id: pack.id, label: pack.label })),
+  { id: "decide" as const, label: "Compare" },
+];
 
-type ViewId = (typeof views)[number]["id"];
+type ViewId = PackId | "decide";
 
 function isViewId(value: unknown): value is ViewId {
-  return value === "pstack" || value === "pocock" || value === "decide";
+  return views.some((item) => item.id === value);
 }
 
 export function Atlas({ initialStatus }: { initialStatus: UpstreamStatus | null }) {
@@ -28,11 +29,14 @@ export function Atlas({ initialStatus }: { initialStatus: UpstreamStatus | null 
       onValueChange={(value) => {
         if (isViewId(value)) setView(value);
       }}
-      className="flex min-h-dvh flex-col bg-background lg:h-dvh lg:overflow-hidden"
+      className="flex min-h-0 flex-1 flex-col bg-background lg:overflow-hidden"
     >
       <header className="sticky top-0 z-20 shrink-0 border-b bg-background/80 backdrop-blur-md lg:static">
         <Freshness initial={initialStatus} />
-        <div className="flex min-h-12 items-center px-4">
+        <div className="flex min-h-12 items-center gap-3 px-4">
+          <Link href="/" className="shrink-0 text-sm font-medium text-foreground">
+            Skill atlas
+          </Link>
           <TabsList
             variant="line"
             className="h-12 w-full justify-start gap-0 bg-transparent p-0 group-data-horizontal/tabs:h-12 lg:w-auto"
@@ -51,23 +55,11 @@ export function Atlas({ initialStatus }: { initialStatus: UpstreamStatus | null 
       </header>
 
       <div className="flex min-h-0 w-full flex-1 flex-col">
-        <TabsContent value="pstack" className="flex min-h-0 flex-1 flex-col text-base">
-          <SkillMap
-            pack="pstack"
-            kicker="pstack"
-            title="Skill map"
-            lede="Name a goal and a check. The router picks one playbook, copies its steps into a todo list, and calls the other skills only when a step needs them."
-          />
-        </TabsContent>
-
-        <TabsContent value="pocock" className="flex min-h-0 flex-1 flex-col text-base">
-          <SkillMap
-            pack="pocock"
-            kicker="matt pocock"
-            title="Skill map"
-            lede="Small skills you invoke. A user-invoked skill may call a model-invoked one, not another user-invoked skill. The main path is grill, spec, tickets, then either one ticket at a time or the whole graph."
-          />
-        </TabsContent>
+        {packViews.map((pack) => (
+          <TabsContent key={pack.id} value={pack.id} className="flex min-h-0 flex-1 flex-col text-base">
+            <SkillMap pack={pack.id} kicker={pack.kicker} title={pack.title} lede={pack.lede} />
+          </TabsContent>
+        ))}
 
         <TabsContent value="decide" className="flex min-h-0 flex-1 flex-col text-base">
           <Decide />
