@@ -52,15 +52,46 @@ function gh(args, input) {
   });
 }
 
+/** Skill directory names under a path at a given SHA. */
+async function skillNames(ownerRepo, path, sha) {
+  const treePath = `/repos/${ownerRepo}/git/trees/${sha}?recursive=1`;
+  const tree = await ghJson(treePath);
+  const prefix = path ? `${path.replace(/\/$/, "")}/` : "";
+  const names = new Set();
+  for (const entry of tree.tree ?? []) {
+    if (entry.type !== "blob" || !entry.path.endsWith("/SKILL.md")) continue;
+    if (prefix && !entry.path.startsWith(prefix)) continue;
+    const rest = prefix ? entry.path.slice(prefix.length) : entry.path;
+    // skills/<name>/SKILL.md or skills/<group>/<name>/SKILL.md
+    const parts = rest.split("/");
+    const name = parts.at(-2);
+    if (name && name !== "deprecated") names.add(name);
+  }
+  return names;
+}
+
 const latest = [];
 for (const pin of pins) {
   const commitsPath = `/repos/${pin.repo}/commits?sha=main&per_page=1${pin.path ? `&path=${encodeURIComponent(pin.path)}` : ""}`;
   const commit = (await ghJson(commitsPath))[0];
+  let inventory = null;
+  try {
+    const [atPin, atHead] = await Promise.all([
+      skillNames(pin.repo, pin.path, pin.sha),
+      skillNames(pin.repo, pin.path, commit.sha),
+    ]);
+    const added = [...atHead].filter((name) => !atPin.has(name)).sort();
+    const removed = [...atPin].filter((name) => !atHead.has(name)).sort();
+    if (added.length || removed.length) inventory = { added, removed };
+  } catch (error) {
+    console.error(`inventory diff failed for ${pin.id}:`, error.message);
+  }
   latest.push({
     ...pin,
     head: commit.sha,
     subject: commit.commit.message.split("\n")[0],
     releaseTag: pin.release ? (await ghJson(`/repos/${pin.repo}/releases/latest`)).tag_name : null,
+    inventory,
   });
 }
 
@@ -77,6 +108,12 @@ for (const item of latest) {
     moved.push(
       `- **${item.label}** release is \`${item.releaseTag}\` (pin is \`${item.release}\`).\n  https://github.com/${item.repo}/releases/tag/${item.releaseTag}`,
     );
+  }
+  if (item.inventory) {
+    const lines = [];
+    if (item.inventory.added.length) lines.push(`  added: ${item.inventory.added.map((name) => `\`${name}\``).join(", ")}`);
+    if (item.inventory.removed.length) lines.push(`  removed: ${item.inventory.removed.map((name) => `\`${name}\``).join(", ")}`);
+    moved.push(`- **${item.label}** skill inventory changed:\n${lines.join("\n")}`);
   }
 }
 
@@ -105,7 +142,7 @@ if (moved.length === 0) {
       "--repo",
       repo,
       "--body",
-      "Pins in `src/data/upstream.ts` match upstream again. Closing.",
+      "Pins in `src/data/upstream.ts` match upstream again, and the skill inventory matches. Closing.",
     ]);
     gh(["issue", "close", String(issue.number), "--repo", repo, "--reason", "completed"]);
   }
@@ -124,7 +161,7 @@ The skill map is out of date. Upstream moved past the pins in \`src/data/upstrea
 
 ${moved.join("\n\n")}
 
-Update the map and move the pins in the same change. Ask in the Grok chat if you want that done there.
+Update the map content (add or remove skills, refresh blurbs when public descriptions changed) and move the pins in the same change. The Grok automation on the upstream-drift email should do both.
 
 ${marker}
 `;
