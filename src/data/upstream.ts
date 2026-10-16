@@ -17,7 +17,7 @@ export const watches: Watch[] = [
     label: "pstack",
     repo: "cursor/plugins",
     path: "pstack",
-    pinnedSha: "e5136d82418d2db3165ea1050d17577cd618cc05",
+    pinnedSha: "99743e9c151c8537cbbf1f98bb38f34ef3368453",
     pinnedRelease: null,
     license: "MIT",
     copyright: "Copyright (c) 2026 Lauren Tan",
