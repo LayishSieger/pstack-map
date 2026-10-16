@@ -207,6 +207,30 @@ export const nodes: SkillDraft[] = [
       "Answers a pstack question and hands back a prompt. It does not start the work. If there is no model rule and that matters, it asks whether to run /setup-pstack now or later.",
   },
   {
+    id: "ketchup",
+    title: "/ketchup",
+    kind: "skill",
+    group: "Understand",
+    blurb:
+      "Catches you up on what changed in this chat since your last message, in a few plain sentences and small visuals. Each action item gets just enough context to make the call. Autopilot loops use it to catch the operator up.",
+  },
+  {
+    id: "sharpen",
+    title: "/sharpen",
+    kind: "skill",
+    group: "Meta",
+    blurb:
+      "Sharpens a task before starting: the expert approach, what you are really after, and the right level of specification. Leaves your choices open. Always keeps one outside check. Then does the work.",
+  },
+  {
+    id: "in-your-own-words",
+    title: "/in-your-own-words",
+    kind: "skill",
+    group: "Meta",
+    blurb:
+      "Restates in its own words what it thinks your goals are and what problem you are trying to solve. Does not start the work.",
+  },
+  {
     id: "poteto-agent",
     title: "poteto-agent",
     kind: "agent",
@@ -410,7 +434,7 @@ export const nodes: SkillDraft[] = [
     title: "attack-the-premise",
     kind: "principle",
     group: "Core",
-    blurb: "Two fixes that share a premise failed the same gate. Census the actors, then question the premise.",
+    blurb: "Two or more fixes that share one premise have failed the same gate. Write the premise down and test it directly before you write another fix that assumes it.",
   },
   {
     id: "subtract-before-you-add",
@@ -480,7 +504,7 @@ export const nodes: SkillDraft[] = [
     title: "make-operations-idempotent",
     kind: "principle",
     group: "Architecture",
-    blurb: "Converge to the same end state after a partial run.",
+    blurb: "Converge to the same end state regardless of partial prior runs. Derive each step from the state that exists, not from what the previous run meant to do.",
   },
   {
     id: "migrate-callers-then-delete-legacy-apis",
@@ -508,7 +532,7 @@ export const nodes: SkillDraft[] = [
     title: "fix-root-causes",
     kind: "principle",
     group: "Verification",
-    blurb: "Reproduce first. Ask why until the cause, then fix it there.",
+    blurb: "Trace each symptom back to the first place the system went wrong and fix it there. A guard is a fix only when the state it handles is legitimate.",
   },
   {
     id: "sequence-verifiable-units",
@@ -522,7 +546,7 @@ export const nodes: SkillDraft[] = [
     title: "test-behavior-not-implementation",
     kind: "principle",
     group: "Verification",
-    blurb: "Call the code the way its users do and assert the result they observe.",
+    blurb: "Assert what the code's users can observe. The test should fail when that behavior breaks and keep passing when only the internals change.",
   },
   {
     id: "explain-the-number",
@@ -641,6 +665,16 @@ export const edges: Edge[] = [
   { from: "orchestrate", to: "figure-it-out", why: "Figure-it-out designs one run. Orchestrate runs the program." },
   { from: "prove-it-works", to: "bug-fix", why: "A fix is not done until the real artifact shows it." },
   { from: "fix-root-causes", to: "bug-fix", why: "Reproduce first, then fix the cause rather than the symptom." },
+  {
+    from: "autonomous-run",
+    to: "ketchup",
+    why: "Autopilot loops catch the operator up with /ketchup.",
+  },
+  {
+    from: "autopilot-full",
+    to: "ketchup",
+    why: "Autopilot loops catch the operator up with /ketchup.",
+  },
 ];
 
 export const groups = [
